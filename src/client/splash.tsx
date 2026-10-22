@@ -5,6 +5,7 @@ import {
   StrictMode,
   useCallback,
   useEffect,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -18,16 +19,18 @@ import type {
 } from '../shared/api';
 import { tierFor } from '../shared/food';
 import { FoodBackground } from './components/FoodBackground';
+import { CogIcon } from './components/CogIcon';
 import { Stars } from './components/Stars';
-import { ThemeToggle } from './components/ThemeToggle';
+import { Settings } from './components/Settings';
 import { fetchInit, fetchTier, fetchUserReviews } from './lib/api';
-import { initTheme } from './lib/theme';
+import { initTheme, syncTheme } from './lib/theme';
 
 type Tab = 'list' | 'tier';
 
 type View =
   | { name: 'landing' }
   | { name: 'explore' }
+  | { name: 'settings' }
   | { name: 'user'; username: string };
 
 const TABS: { id: Tab; label: string }[] = [
@@ -44,7 +47,7 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 const EmptyState = ({ children }: { children: ReactNode }) => (
-  <p className="mx-auto my-4 max-w-xs rounded-xl bg-white/80 px-4 py-6 text-center text-sm font-medium text-stone-700 backdrop-blur dark:bg-black/45 dark:text-stone-200">
+  <p className="mx-auto my-4 max-w-xs rounded-xl border border-line bg-surface backdrop-blur px-4 py-6 text-center text-sm font-medium text-muted">
     {children}
   </p>
 );
@@ -64,23 +67,17 @@ const FoodList = ({
       {reviews.map((r) => (
         <li
           key={r.id}
-          className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800"
+          className="rounded-xl border border-line bg-surface backdrop-blur p-3"
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {r.place}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {r.food}
-              </p>
+              <p className="font-semibold text-ink truncate">{r.place}</p>
+              <p className="text-xs text-muted">{r.food}</p>
             </div>
             <Stars rating={r.rating} />
           </div>
           {r.review && (
-            <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
-              {r.review}
-            </p>
+            <p className="mt-2 text-sm text-ink/80 line-clamp-3">{r.review}</p>
           )}
         </li>
       ))}
@@ -124,8 +121,8 @@ const FoodTier = ({ foods }: { foods: string[] }) => {
             onClick={() => setFood(f)}
             className={`shrink-0 rounded-full px-3 py-1 text-sm cursor-pointer transition-colors ${
               f === food
-                ? 'bg-[#d93900] text-white'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                ? 'bg-cta text-cta-ink'
+                : 'border border-line bg-surface text-ink'
             }`}
           >
             {f}
@@ -143,9 +140,9 @@ const FoodTier = ({ foods }: { foods: string[] }) => {
             return (
               <li
                 key={e.place}
-                className="flex items-center gap-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2"
+                className="flex items-center gap-3 rounded-xl border border-line bg-surface backdrop-blur p-2"
               >
-                <span className="w-5 text-right text-sm font-semibold text-gray-500">
+                <span className="w-5 text-right text-sm font-semibold text-muted">
                   {i + 1}
                 </span>
                 <span
@@ -153,10 +150,10 @@ const FoodTier = ({ foods }: { foods: string[] }) => {
                 >
                   {tier}
                 </span>
-                <span className="flex-1 truncate font-medium text-gray-900 dark:text-gray-100">
+                <span className="flex-1 truncate font-medium text-ink">
                   {e.place}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-muted">
                   {e.average.toFixed(1)}★ · {e.count}
                 </span>
               </li>
@@ -172,7 +169,7 @@ const BackButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
     aria-label="Back"
-    className="shrink-0 rounded-full p-1.5 text-lg leading-none text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+    className="shrink-0 rounded-full p-1.5 text-lg leading-none text-ink cursor-pointer hover:bg-soft transition-colors"
   >
     ←
   </button>
@@ -202,10 +199,12 @@ const Landing = ({
   data,
   onExplore,
   onLookup,
+  onSettings,
 }: {
   data: InitResponse | null;
   onExplore: () => void;
   onLookup: (username: string) => void;
+  onSettings: () => void;
 }) => {
   const [username, setUsername] = useState('');
   const trimmed = username.trim().replace(/^\/?u\//i, '');
@@ -217,16 +216,23 @@ const Landing = ({
 
   return (
     <div className="relative flex h-full flex-col items-center justify-center gap-4 overflow-y-auto px-6 py-6 text-center">
-      <ThemeToggle className="absolute top-3 right-3" />
-      <p className="rounded-full bg-white/85 px-3 py-1 text-sm font-bold text-[#d93900] shadow-sm dark:bg-black/40 dark:text-orange-300">
+      <button
+        onClick={onSettings}
+        aria-label="Settings"
+        title="Settings"
+        className="absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-sm backdrop-blur cursor-pointer hover:text-cta transition-colors"
+      >
+        <CogIcon className="h-5 w-5" />
+      </button>
+      <p className="rounded-full border border-line bg-surface px-3 py-1 text-sm font-bold text-cta shadow-sm backdrop-blur">
         {data?.subredditName ? `r/${data.subredditName}` : '\u00a0'}
       </p>
       <Avatar url={data?.avatarUrl ?? null} username={data?.username ?? null} />
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-extrabold text-stone-900 dark:text-white">
+        <h1 className="text-2xl font-extrabold text-ink">
           {data?.username ? `Hey u/${data.username}!` : '🍔 Food Tier'}
         </h1>
-        <p className="max-w-xs text-sm font-medium text-stone-800 dark:text-orange-100/90">
+        <p className="max-w-xs text-sm font-medium text-ink/85">
           Rate the spots you eat at, build your personal food list, and see
           which places the community ranks top tier for every dish.
         </p>
@@ -234,13 +240,13 @@ const Landing = ({
       <div className="flex w-full max-w-xs gap-2">
         <button
           onClick={onExplore}
-          className="flex-1 rounded-full bg-[#d93900] px-4 py-2.5 font-bold text-white shadow-md cursor-pointer hover:bg-[#c23300] transition-colors"
+          className="flex-1 rounded-full bg-cta px-4 py-2.5 font-bold text-cta-ink shadow-md cursor-pointer hover:brightness-95 transition"
         >
           Explore
         </button>
         <button
           onClick={(e) => requestExpandedMode(e.nativeEvent, 'create')}
-          className="flex-1 rounded-full bg-white px-4 py-2.5 font-bold text-[#d93900] shadow-md cursor-pointer hover:bg-orange-50 transition-colors dark:bg-gray-900 dark:text-orange-300 dark:hover:bg-gray-800"
+          className="flex-1 rounded-full border border-line bg-soft px-4 py-2.5 font-bold text-soft-ink shadow-md cursor-pointer hover:brightness-95 transition"
         >
           + Add review
         </button>
@@ -255,12 +261,12 @@ const Landing = ({
           autoCorrect="off"
           spellCheck={false}
           maxLength={30}
-          className="min-w-0 flex-1 rounded-full border border-white/60 bg-white/90 px-4 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-[#d93900] dark:border-gray-700 dark:bg-gray-900/90 dark:text-gray-100"
+          className="min-w-0 flex-1 rounded-full border border-line bg-field px-4 py-2 text-sm text-ink shadow-sm outline-none placeholder:text-muted focus:border-cta"
         />
         <button
           type="submit"
           disabled={!trimmed}
-          className="shrink-0 rounded-full bg-stone-900 px-4 py-2 text-sm font-bold text-white shadow-sm cursor-pointer hover:bg-stone-800 transition-colors disabled:cursor-not-allowed disabled:opacity-60 dark:bg-orange-300 dark:text-stone-900 dark:hover:bg-orange-200"
+          className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm font-bold text-field shadow-sm cursor-pointer hover:opacity-90 transition disabled:cursor-not-allowed disabled:opacity-50 dark:bg-soft dark:text-soft-ink"
         >
           View list
         </button>
@@ -301,15 +307,14 @@ const UserList = ({
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-2 px-4 pt-4 pb-2 border-b border-white/50 bg-white/75 backdrop-blur dark:border-white/10 dark:bg-black/45">
+      <header className="flex items-center gap-2 px-4 pt-4 pb-2 border-b border-line bg-surface backdrop-blur">
         <BackButton onClick={onBack} />
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold text-gray-900 dark:text-white">
+          <h1 className="truncate text-lg font-bold text-ink">
             u/{current?.ok ? current.data.username : username}
           </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Food list</p>
+          <p className="text-xs text-muted">Food list</p>
         </div>
-        <ThemeToggle className="ml-auto" />
       </header>
       <main className="flex-1 overflow-y-auto px-4 py-3">
         {!current ? (
@@ -333,11 +338,19 @@ export const Splash = () => {
   const [data, setData] = useState<InitResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const themeSynced = useRef(false);
+
   const load = useCallback(() => {
     fetchInit()
       .then((res) => {
         setData(res);
         setError(null);
+        // Adopt the account's saved theme once; later refreshes could race
+        // with a theme the user is picking right now.
+        if (!themeSynced.current) {
+          themeSynced.current = true;
+          syncTheme(res.theme);
+        }
       })
       .catch((err: Error) => setError(err.message));
   }, []);
@@ -362,6 +375,21 @@ export const Splash = () => {
         data={data}
         onExplore={() => setView({ name: 'explore' })}
         onLookup={(username) => setView({ name: 'user', username })}
+        onSettings={() => setView({ name: 'settings' })}
+      />
+    );
+  }
+
+  if (view.name === 'settings') {
+    return (
+      <Settings
+        subredditName={data?.subredditName ?? ''}
+        header={
+          <header className="flex items-center gap-2 px-4 pt-4 pb-2 border-b border-line bg-surface backdrop-blur">
+            <BackButton onClick={goHome} />
+            <h1 className="text-lg font-bold text-ink">Settings</h1>
+          </header>
+        }
       />
     );
   }
@@ -372,37 +400,34 @@ export const Splash = () => {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="bg-white/75 backdrop-blur dark:bg-black/45">
+      <div className="bg-surface backdrop-blur">
         <header className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
           <BackButton onClick={goHome} />
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              🍔 Food Tier
-            </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <h1 className="text-xl font-bold text-ink">🍔 Food Tier</h1>
+            <p className="text-xs text-muted truncate">
               {data?.username
                 ? `u/${data.username}`
                 : 'Rate the spots you love'}
             </p>
           </div>
-          <ThemeToggle />
           <button
-            className="shrink-0 rounded-full bg-[#d93900] px-4 py-2 text-sm font-semibold text-white cursor-pointer hover:bg-[#c23300] transition-colors"
+            className="shrink-0 rounded-full bg-cta px-4 py-2 text-sm font-semibold text-cta-ink cursor-pointer hover:brightness-95 transition"
             onClick={(e) => requestExpandedMode(e.nativeEvent, 'create')}
           >
             + Add review
           </button>
         </header>
 
-        <nav className="flex gap-1 px-4 border-b border-white/50 dark:border-white/10">
+        <nav className="flex gap-1 px-4 border-b border-line">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`px-3 py-2 text-sm font-medium cursor-pointer border-b-2 -mb-px transition-colors ${
                 tab === t.id
-                  ? 'border-[#d93900] text-[#d93900]'
-                  : 'border-transparent text-stone-600 dark:text-stone-300'
+                  ? 'border-cta text-cta'
+                  : 'border-transparent text-muted'
               }`}
             >
               {t.label}

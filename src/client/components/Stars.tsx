@@ -17,13 +17,7 @@ export const Stars = ({ rating, onChange, size = 'sm' }: StarsProps) => {
         const value = i + 1;
         const filled = value <= rating;
         const star = (
-          <span
-            className={
-              filled ? 'text-amber-500' : 'text-gray-300 dark:text-gray-600'
-            }
-          >
-            ★
-          </span>
+          <span className={filled ? 'text-accent' : 'text-muted/35'}>★</span>
         );
         return onChange ? (
           <button

@@ -1,22 +1,49 @@
-// Served from /public; the doodles are dark lines on a transparent background.
-const PATTERN_URL = '/background.png';
+import type { CSSProperties } from 'react';
+import { useTheme, type Art, type Palette } from '../lib/theme';
 
-/**
- * Saffron-to-orange gradient (chili red in the dark theme) with the food
- * doodles blended on top. In the dark theme the doodles are inverted so they
- * show as light lines.
- */
-export const FoodBackground = () => (
+// The art is used as a mask and painted in the palette's text colour, so
+// black or white source files both match whatever palette is chosen.
+const artStyle = (palette: Palette, art: Art): CSSProperties => {
+  const mask = `url(${art.url})`;
+  return {
+    backgroundColor: palette.colors.ink,
+    opacity: (palette.dark ? 0.3 : 0.38) * art.weight,
+    maskImage: mask,
+    WebkitMaskImage: mask,
+    // The frames are square with an empty middle; keep them whole and
+    // centred behind the content.
+    maskSize: 'contain',
+    WebkitMaskSize: 'contain',
+    maskRepeat: 'no-repeat',
+    WebkitMaskRepeat: 'no-repeat',
+    maskPosition: 'center',
+    WebkitMaskPosition: 'center',
+  };
+};
+
+/** A palette's background with a design's art layered on top. */
+export const ThemeSurface = ({
+  palette,
+  art,
+  className = '',
+}: {
+  palette: Palette;
+  art?: Art;
+  className?: string;
+}) => (
   <div
     aria-hidden
-    className="pointer-events-none fixed inset-0 -z-10 bg-linear-160 from-[#ffd36e] via-[#ffb04a] to-[#ff7a3d] dark:from-[#3a0f0b] dark:via-[#541a10] dark:to-[#2a0906]"
+    className={`pointer-events-none overflow-hidden ${className}`}
+    style={{ background: palette.background }}
   >
-    <div
-      className="absolute bg-cover mix-blend-multiply dark:opacity-35 dark:mix-blend-screen dark:invert"
-      style={{
-        backgroundImage: `url(${PATTERN_URL})`,
-        backgroundSize: '480px auto',
-      }}
-    />
+    {art && <div className="absolute inset-0" style={artStyle(palette, art)} />}
   </div>
 );
+
+/** Full-page background for the selected theme. */
+export const FoodBackground = () => {
+  const { palette, art } = useTheme();
+  return (
+    <ThemeSurface palette={palette} art={art} className="fixed inset-0 -z-10" />
+  );
+};

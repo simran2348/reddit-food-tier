@@ -1,3 +1,5 @@
+import type { ArtId, PaletteId } from './theme';
+
 export type FoodReview = {
   id: string;
   username: string;
@@ -24,6 +26,8 @@ export type InitResponse = {
   username: string | null;
   avatarUrl: string | null;
   subredditName: string;
+  /** The user's saved theme; null parts haven't been picked yet. */
+  theme: ThemePreference;
   myList: FoodReview[];
   foods: string[];
 };
@@ -31,6 +35,16 @@ export type InitResponse = {
 export type UserReviewsResponse = {
   username: string;
   reviews: FoodReview[];
+};
+
+export type ThemePreference = {
+  palette: PaletteId | null;
+  art: ArtId | null;
+};
+
+export type SaveThemeRequest = {
+  palette?: PaletteId;
+  art?: ArtId;
 };
 
 export type TierResponse = {

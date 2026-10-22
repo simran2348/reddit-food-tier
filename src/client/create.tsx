@@ -10,7 +10,7 @@ import { createReview } from './lib/api';
 import { initTheme } from './lib/theme';
 
 const inputClass =
-  'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#d93900]';
+  'w-full rounded-lg border border-line bg-field px-3 py-2 text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-cta';
 
 export const Create = () => {
   const [food, setFood] = useState('');
@@ -44,20 +44,18 @@ export const Create = () => {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-6">
         <p className="text-4xl">🎉</p>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-          Review posted
-        </h1>
+        <h1 className="text-xl font-bold text-ink">Review posted</h1>
         <div className="flex gap-2">
           {postUrl && (
             <button
-              className="rounded-full bg-[#d93900] px-4 py-2 text-sm font-semibold text-white cursor-pointer"
+              className="rounded-full bg-cta px-4 py-2 text-sm font-semibold text-cta-ink cursor-pointer"
               onClick={() => navigateTo(postUrl)}
             >
               View post
             </button>
           )}
           <button
-            className="rounded-full bg-gray-200 dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white cursor-pointer"
+            className="rounded-full border border-line bg-soft px-4 py-2 text-sm font-semibold text-soft-ink cursor-pointer"
             onClick={(e) => exitExpandedMode(e.nativeEvent)}
           >
             Done
@@ -72,11 +70,9 @@ export const Create = () => {
       onSubmit={submit}
       className="mx-auto flex h-full max-w-md flex-col gap-4 p-4"
     >
-      <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-        Add a review
-      </h1>
+      <h1 className="text-xl font-bold text-ink">Add a review</h1>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label className="flex flex-col gap-1 text-sm font-medium text-ink">
         Food
         <input
           className={inputClass}
@@ -87,7 +83,7 @@ export const Create = () => {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label className="flex flex-col gap-1 text-sm font-medium text-ink">
         Place
         <input
           className={inputClass}
@@ -98,13 +94,13 @@ export const Create = () => {
         />
       </label>
 
-      <div className="flex flex-col gap-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+      <div className="flex flex-col gap-1 text-sm font-medium text-ink">
         Rating
         <Stars rating={rating} onChange={setRating} size="lg" />
       </div>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-        Review <span className="font-normal text-gray-500">(optional)</span>
+      <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        Review <span className="font-normal text-muted">(optional)</span>
         <textarea
           className={`${inputClass} min-h-24`}
           value={review}
@@ -117,7 +113,7 @@ export const Create = () => {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="mt-2 rounded-full bg-[#d93900] px-4 py-2.5 font-semibold text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="mt-2 rounded-full bg-cta px-4 py-2.5 font-semibold text-cta-ink cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting ? 'Posting…' : 'Post review'}
       </button>

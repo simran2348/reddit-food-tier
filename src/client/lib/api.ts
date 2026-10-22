@@ -3,6 +3,7 @@ import type {
   CreateReviewResponse,
   ErrorResponse,
   InitResponse,
+  SaveThemeRequest,
   TierResponse,
   UserReviewsResponse,
 } from '../../shared/api';
@@ -29,6 +30,12 @@ export const fetchUserReviews = (username: string) =>
   request<UserReviewsResponse>(
     `/api/users/${encodeURIComponent(username)}/reviews`
   );
+
+export const saveTheme = (body: SaveThemeRequest) =>
+  request<{ status: 'ok' }>('/api/theme', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 
 export const createReview = (body: CreateReviewRequest) =>
   request<CreateReviewResponse>('/api/reviews', {

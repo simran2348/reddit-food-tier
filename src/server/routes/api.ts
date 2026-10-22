@@ -5,11 +5,14 @@ import type {
   CreateReviewResponse,
   ErrorResponse,
   InitResponse,
+  SaveThemeRequest,
   TierResponse,
   UserReviewsResponse,
 } from '../../shared/api';
+import { isArtId, isPaletteId } from '../../shared/theme';
 import { isValidRating } from '../../shared/food';
 import { createReviewPost, postUrl } from '../core/post';
+import { getUserTheme, saveUserTheme } from '../core/preferences';
 import {
   attachPostToReview,
   getFoodTier,
@@ -28,17 +31,21 @@ export const api = new Hono();
 api.get('/init', async (c) => {
   try {
     const username = (await reddit.getCurrentUsername()) ?? null;
-    const [myList, foods, avatarUrl] = await Promise.all([
+    const [myList, foods, avatarUrl, theme] = await Promise.all([
       username ? getUserReviews(username) : Promise.resolve([]),
       getTopFoods(),
       username
         ? reddit.getSnoovatarUrl(username).catch(() => undefined)
         : Promise.resolve(undefined),
+      username
+        ? getUserTheme(username)
+        : Promise.resolve({ palette: null, art: null }),
     ]);
     return c.json<InitResponse>({
       username,
       avatarUrl: avatarUrl ?? null,
       subredditName: context.subredditName ?? '',
+      theme,
       myList,
       foods,
     });
@@ -78,6 +85,35 @@ api.get('/users/:username/reviews', async (c) => {
     });
   } catch (error) {
     console.error(`API user reviews error for ${input}:`, error);
+    return c.json<ErrorResponse>(
+      { status: 'error', message: errorMessage(error) },
+      500
+    );
+  }
+});
+
+api.post('/theme', async (c) => {
+  const username = await reddit.getCurrentUsername();
+  if (!username) {
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'You must be logged in' },
+      401
+    );
+  }
+  const body = await c.req.json<Partial<SaveThemeRequest>>();
+  const palette = isPaletteId(body.palette) ? body.palette : undefined;
+  const art = isArtId(body.art) ? body.art : undefined;
+  if (!palette && !art) {
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'Unknown theme' },
+      400
+    );
+  }
+  try {
+    await saveUserTheme(username, { palette, art });
+    return c.json({ status: 'ok' });
+  } catch (error) {
+    console.error(`API save theme error for ${username}:`, error);
     return c.json<ErrorResponse>(
       { status: 'error', message: errorMessage(error) },
       500

@@ -1,9 +1,23 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/nunito';
 
-/* Dark mode follows the in-app theme toggle (a `dark` class on <html>). */
+/* Dark mode follows the selected palette (a `dark` class on <html>). */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: 'Nunito Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Palette colours, set on <html> by lib/theme.ts. */
+@theme inline {
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-cta: var(--cta);
+  --color-cta-ink: var(--cta-ink);
+  --color-soft: var(--soft);
+  --color-soft-ink: var(--soft-ink);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-field: var(--field);
+  --color-accent: var(--accent);
 }
