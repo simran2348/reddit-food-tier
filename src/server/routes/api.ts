@@ -5,6 +5,7 @@ import type {
   CreateReviewResponse,
   ErrorResponse,
   InitResponse,
+  ProfileResponse,
   SaveThemeRequest,
   TierResponse,
   UserReviewsResponse,
@@ -28,20 +29,39 @@ const errorMessage = (error: unknown) =>
 
 export const api = new Hono();
 
-api.get('/init', async (c) => {
+api.get('/profile', async (c) => {
   try {
     const username = (await reddit.getCurrentUsername()) ?? null;
-    const [myList, foods, avatarUrl, theme] = await Promise.all([
-      username ? getUserReviews(username) : Promise.resolve([]),
-      getTopFoods(),
+    const [avatarUrl, theme] = await Promise.all([
       username
         ? reddit.getSnoovatarUrl(username).catch(() => undefined)
         : Promise.resolve(undefined),
       username ? getUserTheme(username) : Promise.resolve(null),
     ]);
-    return c.json<InitResponse>({
+    return c.json<ProfileResponse>({
       username,
       avatarUrl: avatarUrl ?? null,
+      theme,
+    });
+  } catch (error) {
+    console.error('API profile error:', error);
+    return c.json<ErrorResponse>(
+      { status: 'error', message: errorMessage(error) },
+      500
+    );
+  }
+});
+
+api.get('/init', async (c) => {
+  try {
+    const username = (await reddit.getCurrentUsername()) ?? null;
+    const [myList, foods, theme] = await Promise.all([
+      username ? getUserReviews(username) : Promise.resolve([]),
+      getTopFoods(),
+      username ? getUserTheme(username) : Promise.resolve(null),
+    ]);
+    return c.json<InitResponse>({
+      username,
       subredditName: context.subredditName ?? '',
       theme,
       myList,

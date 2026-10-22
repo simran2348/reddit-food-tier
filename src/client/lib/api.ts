@@ -3,6 +3,7 @@ import type {
   CreateReviewResponse,
   ErrorResponse,
   InitResponse,
+  ProfileResponse,
   SaveThemeRequest,
   TierResponse,
   UserReviewsResponse,
@@ -20,6 +21,8 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const data: T = await res.json();
   return data;
 };
+
+export const fetchProfile = () => request<ProfileResponse>('/api/profile');
 
 export const fetchInit = () => request<InitResponse>('/api/init');
 

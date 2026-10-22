@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
+import { ART_URL } from '../lib/art';
 import { useTheme, type Palette } from '../lib/theme';
-
-const ART_URL = '/art/h2.png';
 
 // The art is used as a mask and painted solid in the palette's art colour,
 // so it always matches the chosen theme.
@@ -20,12 +19,14 @@ const artStyle = (palette: Palette): CSSProperties => {
   };
 };
 
-/** A palette's background with the food art on top. */
+/** A palette's background, optionally with the food art on top. */
 export const ThemeSurface = ({
   palette,
+  withArt = true,
   className = '',
 }: {
   palette: Palette;
+  withArt?: boolean;
   className?: string;
 }) => (
   <div
@@ -33,11 +34,15 @@ export const ThemeSurface = ({
     className={`pointer-events-none overflow-hidden ${className}`}
     style={{ background: palette.background }}
   >
-    <div className="absolute inset-0" style={artStyle(palette)} />
+    {withArt && <div className="absolute inset-0" style={artStyle(palette)} />}
   </div>
 );
 
 /** Full-page background for the selected theme. */
-export const FoodBackground = () => (
-  <ThemeSurface palette={useTheme()} className="fixed inset-0 -z-10" />
+export const FoodBackground = ({ withArt = false }: { withArt?: boolean }) => (
+  <ThemeSurface
+    palette={useTheme()}
+    withArt={withArt}
+    className="fixed inset-0 -z-10"
+  />
 );

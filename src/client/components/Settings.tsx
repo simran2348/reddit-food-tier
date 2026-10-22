@@ -2,9 +2,19 @@ import { navigateTo, showToast } from '@devvit/web/client';
 import type { ReactNode } from 'react';
 import { saveTheme } from '../lib/api';
 import { PALETTES, setPalette, useTheme, type Palette } from '../lib/theme';
+import { TIER_COLORS } from '../lib/tiers';
 import { ThemeSurface } from './FoodBackground';
+import { ScreenHeader } from './ui';
 
 const FEEDBACK_SUBJECT = 'Food Tier - User Feedback';
+
+const TIERS: { tier: string; range: string }[] = [
+  { tier: 'S', range: '4.5★ and up' },
+  { tier: 'A', range: '4.0 – 4.4★' },
+  { tier: 'B', range: '3.0 – 3.9★' },
+  { tier: 'C', range: '2.0 – 2.9★' },
+  { tier: 'D', range: 'below 2.0★' },
+];
 
 const modmailUrl = (subredditName: string) =>
   `https://www.reddit.com/message/compose?to=${encodeURIComponent(
@@ -26,12 +36,12 @@ const Section = ({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 }) => (
   <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm backdrop-blur">
     <h2 className="font-bold text-ink">{title}</h2>
-    <p className="mb-3 text-xs text-muted">{description}</p>
+    {description && <p className="mb-3 text-xs text-muted">{description}</p>}
     {children}
   </section>
 );
@@ -73,19 +83,52 @@ const Option = ({
   </button>
 );
 
-export const Settings = ({
-  subredditName,
-  header,
-}: {
-  subredditName: string;
-  header: ReactNode;
-}) => {
+export const Settings = ({ subredditName }: { subredditName: string }) => {
   const palette = useTheme();
 
   return (
     <div className="flex h-full flex-col">
-      {header}
+      <ScreenHeader title="Settings" />
       <main className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
+        <Section title="About Food Tier">
+          <div className="flex flex-col gap-3 text-sm text-ink/85">
+            <p>
+              Rate the places you eat at, keep your own food list, and see which
+              spots the community ranks best for every dish.
+            </p>
+            <ul className="flex list-disc flex-col gap-1 pl-5 marker:text-cta">
+              <li>
+                <b>My Food</b>: your reviews, plus the community tier list for
+                each food.
+              </li>
+              <li>
+                <b>Explore</b>: look up any Redditor's list and ratings.
+              </li>
+              <li>
+                Every review you add is also shared as a post
+                {subredditName ? ` in r/${subredditName}` : ''}.
+              </li>
+            </ul>
+            <div>
+              <p className="mb-1.5 text-xs font-bold text-muted">
+                How tiers work (average rating)
+              </p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {TIERS.map(({ tier, range }) => (
+                  <span key={tier} className="flex items-center gap-2 text-xs">
+                    <span
+                      className={`flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold text-white ${TIER_COLORS[tier]}`}
+                    >
+                      {tier}
+                    </span>
+                    {range}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Section>
+
         <Section title="Theme" description="Pick a colour for the app.">
           <div className="grid grid-cols-3 gap-2">
             {PALETTES.map((p) => (

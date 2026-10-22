@@ -22,9 +22,16 @@ export type ErrorResponse = {
   message: string;
 };
 
-export type InitResponse = {
+/** What the inline splash needs: kept small so the feed view loads fast. */
+export type ProfileResponse = {
   username: string | null;
   avatarUrl: string | null;
+  /** The user's saved palette, if they've picked one. */
+  theme: PaletteId | null;
+};
+
+export type InitResponse = {
+  username: string | null;
   subredditName: string;
   /** The user's saved palette, if they've picked one. */
   theme: PaletteId | null;
