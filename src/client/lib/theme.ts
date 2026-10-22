@@ -1,6 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { ThemePreference } from '../../shared/api';
-import type { ArtId, PaletteId } from '../../shared/theme';
+import type { PaletteId } from '../../shared/theme';
 
 /** UI colours a palette provides; exposed to Tailwind as `ink`, `cta`, … */
 type PaletteColors = {
@@ -27,22 +26,13 @@ type PaletteColors = {
 export type Palette = {
   id: PaletteId;
   name: string;
-  /** Dark palettes use light text (and light art). */
+  /** Dark palettes use light text. */
   dark: boolean;
   background: string;
+  /** Solid colour the background art is painted in. */
+  artColor: string;
   colors: PaletteColors;
 };
-
-export type Art = {
-  id: ArtId;
-  name: string;
-  /** Single-colour frame art; only its shape is used (see FoodBackground). */
-  url: string;
-  /** Opacity scale, so bold silhouettes don't overpower fine line art. */
-  weight: number;
-};
-
-export type Theme = { palette: Palette; art: Art };
 
 const radial = (...stops: string[]) =>
   `radial-gradient(circle at 50% 35%, ${stops.join(', ')})`;
@@ -77,6 +67,7 @@ const LAGOON: Palette = {
   name: 'Lagoon',
   dark: false,
   background: radial('#8ad1d7', '#3ebdcc', '#04afc4'),
+  artColor: '#0d93a5',
   colors: lightColors({
     ink: '#083a40',
     muted: '#2c636b',
@@ -92,6 +83,7 @@ const CHILI: Palette = {
   name: 'Chili Night',
   dark: true,
   background: linear('#3a0f0b', '#541a10', '#2a0906'),
+  artColor: '#86301d',
   colors: darkColors({
     ink: '#fff4ef',
     muted: '#f0c4b4',
@@ -107,6 +99,7 @@ export const PALETTES: Palette[] = [
     name: 'Cream',
     dark: false,
     background: linear('#fffcf5', '#fff9ed', '#fdf1dc'),
+    artColor: '#f0c9a2',
     colors: lightColors({
       ink: '#1b5e3a',
       muted: '#6b7f73',
@@ -124,6 +117,7 @@ export const PALETTES: Palette[] = [
     name: 'Sage',
     dark: false,
     background: linear('#f1f7ee', '#eaf3e7', '#dde9d8'),
+    artColor: '#b4d1aa',
     colors: lightColors({
       ink: '#1b5e3a',
       muted: '#6b7f73',
@@ -141,6 +135,7 @@ export const PALETTES: Palette[] = [
     name: 'Saffron',
     dark: false,
     background: linear('#fff8e6', '#ffecc2', '#ffdc9e'),
+    artColor: '#f4c060',
     colors: lightColors({
       ink: '#4a2a06',
       muted: '#7a5a33',
@@ -155,6 +150,7 @@ export const PALETTES: Palette[] = [
     name: 'Matcha',
     dark: false,
     background: radial('#eef3d6', '#cfe0a3', '#a3c472'),
+    artColor: '#93b45c',
     colors: lightColors({
       ink: '#24361a',
       muted: '#55663f',
@@ -169,6 +165,7 @@ export const PALETTES: Palette[] = [
     name: 'Peach',
     dark: false,
     background: linear('#ffe9dc', '#ffcdb2', '#ffab8a'),
+    artColor: '#f49a74',
     colors: lightColors({
       ink: '#4a2216',
       muted: '#80513f',
@@ -183,6 +180,7 @@ export const PALETTES: Palette[] = [
     name: 'Berry Smoothie',
     dark: false,
     background: linear('#fbe0ec', '#f4b3cd', '#e38bb0'),
+    artColor: '#dc7aa2',
     colors: lightColors({
       ink: '#4a1630',
       muted: '#7f4562',
@@ -197,6 +195,7 @@ export const PALETTES: Palette[] = [
     name: 'Vanilla',
     dark: false,
     background: radial('#fffaf0', '#fdeec8', '#f6d98f'),
+    artColor: '#e9c97e',
     colors: lightColors({
       ink: '#3f2f10',
       muted: '#76643f',
@@ -212,6 +211,7 @@ export const PALETTES: Palette[] = [
     name: 'Blueberry',
     dark: true,
     background: linear('#1d1b3a', '#2c2860', '#15132c'),
+    artColor: '#4a4496',
     colors: darkColors({
       ink: '#f0eeff',
       muted: '#bdb8e6',
@@ -224,6 +224,7 @@ export const PALETTES: Palette[] = [
     name: 'Espresso',
     dark: true,
     background: linear('#2e1f17', '#422c20', '#1f140e'),
+    artColor: '#6e4b35',
     colors: darkColors({
       ink: '#fbf1e8',
       muted: '#d4bca8',
@@ -236,6 +237,7 @@ export const PALETTES: Palette[] = [
     name: 'Olive Grove',
     dark: true,
     background: linear('#1f2b1b', '#2f4026', '#161f12'),
+    artColor: '#4f6a3b',
     colors: darkColors({
       ink: '#eef5e6',
       muted: '#b9c9a8',
@@ -245,37 +247,22 @@ export const PALETTES: Palette[] = [
   },
 ];
 
-const HERBS: Art = {
-  id: 'herbs',
-  name: 'Herbs',
-  url: '/art/h1.png',
-  weight: 1,
-};
+const STORAGE_KEY = 'food-tier:theme';
 
-export const ARTS: Art[] = [
-  HERBS,
-  { id: 'leaves', name: 'Leaves', url: '/art/h2.png', weight: 0.7 },
-  { id: 'wreath', name: 'Wreath', url: '/art/h3.png', weight: 0.75 },
-  { id: 'pantry', name: 'Pantry', url: '/art/h4.png', weight: 1 },
-  { id: 'spices', name: 'Spices', url: '/art/h5.png', weight: 1 },
-];
-
-const STORAGE_KEYS = { palette: 'food-tier:theme', art: 'food-tier:art' };
-
-let current: Theme = { palette: LAGOON, art: HERBS };
+let current: Palette = LAGOON;
 const listeners = new Set<() => void>();
 
-const readStorage = (key: string) => {
+const readStorage = () => {
   try {
-    return localStorage.getItem(key);
+    return localStorage.getItem(STORAGE_KEY);
   } catch {
     return null;
   }
 };
 
-const writeStorage = (key: string, value: string) => {
+const writeStorage = (value: string) => {
   try {
-    localStorage.setItem(key, value);
+    localStorage.setItem(STORAGE_KEY, value);
   } catch {
     // Storage can be unavailable in the webview; the theme still applies.
   }
@@ -288,14 +275,12 @@ const findPalette = (id: string | null) => {
   return PALETTES.find((p) => p.id === id);
 };
 
-const findArt = (id: string | null) => ARTS.find((a) => a.id === id);
-
-const applyTheme = (theme: Theme) => {
-  current = theme;
+const applyPalette = (palette: Palette) => {
+  current = palette;
   const root = document.documentElement;
-  const c = theme.palette.colors;
-  root.classList.toggle('dark', theme.palette.dark);
-  root.style.colorScheme = theme.palette.dark ? 'dark' : 'light';
+  const c = palette.colors;
+  root.classList.toggle('dark', palette.dark);
+  root.style.colorScheme = palette.dark ? 'dark' : 'light';
   // Mapped to Tailwind colours in index.css.
   const vars: [string, string][] = [
     ['--ink', c.ink],
@@ -316,30 +301,18 @@ const applyTheme = (theme: Theme) => {
 /** Apply the saved (or system-matching) theme before the first render. */
 export const initTheme = () => {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  applyTheme({
-    palette:
-      findPalette(readStorage(STORAGE_KEYS.palette)) ??
-      (prefersDark ? CHILI : LAGOON),
-    art: findArt(readStorage(STORAGE_KEYS.art)) ?? HERBS,
-  });
+  applyPalette(findPalette(readStorage()) ?? (prefersDark ? CHILI : LAGOON));
 };
 
 export const setPalette = (palette: Palette) => {
-  applyTheme({ ...current, palette });
-  writeStorage(STORAGE_KEYS.palette, palette.id);
+  applyPalette(palette);
+  writeStorage(palette.id);
 };
 
-export const setArt = (art: Art) => {
-  applyTheme({ ...current, art });
-  writeStorage(STORAGE_KEYS.art, art.id);
-};
-
-/** Apply the theme saved on the user's account (the parts they've picked). */
-export const syncTheme = ({ palette, art }: ThemePreference) => {
-  const nextPalette = findPalette(palette);
-  const nextArt = findArt(art);
-  if (nextPalette && nextPalette !== current.palette) setPalette(nextPalette);
-  if (nextArt && nextArt !== current.art) setArt(nextArt);
+/** Apply the palette saved on the user's account, if they've picked one. */
+export const syncTheme = (id: PaletteId | null) => {
+  const palette = findPalette(id);
+  if (palette && palette !== current) setPalette(palette);
 };
 
 const subscribe = (listener: () => void) => {

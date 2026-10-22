@@ -1,19 +1,18 @@
 import type { CSSProperties } from 'react';
-import { useTheme, type Art, type Palette } from '../lib/theme';
+import { useTheme, type Palette } from '../lib/theme';
 
-// The art is used as a mask and painted in the palette's text colour, so
-// black or white source files both match whatever palette is chosen.
-const artStyle = (palette: Palette, art: Art): CSSProperties => {
-  const mask = `url(${art.url})`;
+const ART_URL = '/art/h2.png';
+
+// The art is used as a mask and painted solid in the palette's art colour,
+// so it always matches the chosen theme.
+const artStyle = (palette: Palette): CSSProperties => {
+  const mask = `url(${ART_URL})`;
   return {
-    backgroundColor: palette.colors.ink,
-    opacity: (palette.dark ? 0.3 : 0.38) * art.weight,
+    backgroundColor: palette.artColor,
     maskImage: mask,
     WebkitMaskImage: mask,
-    // The frames are square with an empty middle; keep them whole and
-    // centred behind the content.
-    maskSize: 'contain',
-    WebkitMaskSize: 'contain',
+    maskSize: 'cover',
+    WebkitMaskSize: 'cover',
     maskRepeat: 'no-repeat',
     WebkitMaskRepeat: 'no-repeat',
     maskPosition: 'center',
@@ -21,14 +20,12 @@ const artStyle = (palette: Palette, art: Art): CSSProperties => {
   };
 };
 
-/** A palette's background with a design's art layered on top. */
+/** A palette's background with the food art on top. */
 export const ThemeSurface = ({
   palette,
-  art,
   className = '',
 }: {
   palette: Palette;
-  art?: Art;
   className?: string;
 }) => (
   <div
@@ -36,14 +33,11 @@ export const ThemeSurface = ({
     className={`pointer-events-none overflow-hidden ${className}`}
     style={{ background: palette.background }}
   >
-    {art && <div className="absolute inset-0" style={artStyle(palette, art)} />}
+    <div className="absolute inset-0" style={artStyle(palette)} />
   </div>
 );
 
 /** Full-page background for the selected theme. */
-export const FoodBackground = () => {
-  const { palette, art } = useTheme();
-  return (
-    <ThemeSurface palette={palette} art={art} className="fixed inset-0 -z-10" />
-  );
-};
+export const FoodBackground = () => (
+  <ThemeSurface palette={useTheme()} className="fixed inset-0 -z-10" />
+);

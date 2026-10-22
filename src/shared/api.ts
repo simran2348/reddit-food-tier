@@ -1,4 +1,4 @@
-import type { ArtId, PaletteId } from './theme';
+import type { PaletteId } from './theme';
 
 export type FoodReview = {
   id: string;
@@ -26,8 +26,8 @@ export type InitResponse = {
   username: string | null;
   avatarUrl: string | null;
   subredditName: string;
-  /** The user's saved theme; null parts haven't been picked yet. */
-  theme: ThemePreference;
+  /** The user's saved palette, if they've picked one. */
+  theme: PaletteId | null;
   myList: FoodReview[];
   foods: string[];
 };
@@ -37,14 +37,8 @@ export type UserReviewsResponse = {
   reviews: FoodReview[];
 };
 
-export type ThemePreference = {
-  palette: PaletteId | null;
-  art: ArtId | null;
-};
-
 export type SaveThemeRequest = {
-  palette?: PaletteId;
-  art?: ArtId;
+  palette: PaletteId;
 };
 
 export type TierResponse = {

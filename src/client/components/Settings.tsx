@@ -1,16 +1,7 @@
 import { navigateTo, showToast } from '@devvit/web/client';
 import type { ReactNode } from 'react';
-import type { SaveThemeRequest } from '../../shared/api';
 import { saveTheme } from '../lib/api';
-import {
-  ARTS,
-  PALETTES,
-  setArt,
-  setPalette,
-  useTheme,
-  type Art,
-  type Palette,
-} from '../lib/theme';
+import { PALETTES, setPalette, useTheme, type Palette } from '../lib/theme';
 import { ThemeSurface } from './FoodBackground';
 
 const FEEDBACK_SUBJECT = 'Food Tier - User Feedback';
@@ -20,21 +11,13 @@ const modmailUrl = (subredditName: string) =>
     `r/${subredditName}`
   )}&subject=${encodeURIComponent(FEEDBACK_SUBJECT)}`;
 
-// Save to the user's account so the theme follows them on every visit.
-const persist = (body: SaveThemeRequest) =>
-  saveTheme(body).catch((err: unknown) => {
+const choosePalette = (palette: Palette) => {
+  setPalette(palette);
+  // Save to the user's account so the theme follows them on every visit.
+  saveTheme({ palette: palette.id }).catch((err: unknown) => {
     console.error('Failed to save theme', err);
     showToast("Couldn't save your theme. It'll reset next time.");
   });
-
-const choosePalette = (palette: Palette) => {
-  setPalette(palette);
-  void persist({ palette: palette.id });
-};
-
-const chooseArt = (art: Art) => {
-  setArt(art);
-  void persist({ art: art.id });
 };
 
 const Section = ({
@@ -97,15 +80,14 @@ export const Settings = ({
   subredditName: string;
   header: ReactNode;
 }) => {
-  const { palette, art } = useTheme();
+  const palette = useTheme();
 
   return (
     <div className="flex h-full flex-col">
       {header}
       <main className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-        <Section title="Theme" description="Mix a colour with a design.">
-          <h3 className="mb-2 text-sm font-bold text-ink">Colour</h3>
-          <div className="mb-4 grid grid-cols-3 gap-2">
+        <Section title="Theme" description="Pick a colour for the app.">
+          <div className="grid grid-cols-3 gap-2">
             {PALETTES.map((p) => (
               <Option
                 key={p.id}
@@ -116,24 +98,6 @@ export const Settings = ({
                 <ThemeSurface
                   palette={p}
                   className="relative h-10 rounded-lg"
-                />
-              </Option>
-            ))}
-          </div>
-
-          <h3 className="mb-2 text-sm font-bold text-ink">Design</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {ARTS.map((a) => (
-              <Option
-                key={a.id}
-                name={a.name}
-                active={a.id === art.id}
-                onSelect={() => chooseArt(a)}
-              >
-                <ThemeSurface
-                  palette={palette}
-                  art={a}
-                  className="relative aspect-square rounded-lg"
                 />
               </Option>
             ))}

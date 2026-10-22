@@ -9,7 +9,7 @@ import type {
   TierResponse,
   UserReviewsResponse,
 } from '../../shared/api';
-import { isArtId, isPaletteId } from '../../shared/theme';
+import { isPaletteId } from '../../shared/theme';
 import { isValidRating } from '../../shared/food';
 import { createReviewPost, postUrl } from '../core/post';
 import { getUserTheme, saveUserTheme } from '../core/preferences';
@@ -37,9 +37,7 @@ api.get('/init', async (c) => {
       username
         ? reddit.getSnoovatarUrl(username).catch(() => undefined)
         : Promise.resolve(undefined),
-      username
-        ? getUserTheme(username)
-        : Promise.resolve({ palette: null, art: null }),
+      username ? getUserTheme(username) : Promise.resolve(null),
     ]);
     return c.json<InitResponse>({
       username,
@@ -101,16 +99,15 @@ api.post('/theme', async (c) => {
     );
   }
   const body = await c.req.json<Partial<SaveThemeRequest>>();
-  const palette = isPaletteId(body.palette) ? body.palette : undefined;
-  const art = isArtId(body.art) ? body.art : undefined;
-  if (!palette && !art) {
+  const palette = body.palette;
+  if (!isPaletteId(palette)) {
     return c.json<ErrorResponse>(
       { status: 'error', message: 'Unknown theme' },
       400
     );
   }
   try {
-    await saveUserTheme(username, { palette, art });
+    await saveUserTheme(username, palette);
     return c.json({ status: 'ok' });
   } catch (error) {
     console.error(`API save theme error for ${username}:`, error);
