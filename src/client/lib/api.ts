@@ -4,6 +4,7 @@ import type {
   ErrorResponse,
   InitResponse,
   TierResponse,
+  UserReviewsResponse,
 } from '../../shared/api';
 
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
@@ -23,6 +24,11 @@ export const fetchInit = () => request<InitResponse>('/api/init');
 
 export const fetchTier = (food: string) =>
   request<TierResponse>(`/api/tier?food=${encodeURIComponent(food)}`);
+
+export const fetchUserReviews = (username: string) =>
+  request<UserReviewsResponse>(
+    `/api/users/${encodeURIComponent(username)}/reviews`
+  );
 
 export const createReview = (body: CreateReviewRequest) =>
   request<CreateReviewResponse>('/api/reviews', {

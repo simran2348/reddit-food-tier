@@ -6,15 +6,29 @@ import {
   useCallback,
   useEffect,
   useState,
+  type FormEvent,
   type ReactNode,
 } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { FoodReview, InitResponse, TierEntry } from '../shared/api';
+import type {
+  FoodReview,
+  InitResponse,
+  TierEntry,
+  UserReviewsResponse,
+} from '../shared/api';
 import { tierFor } from '../shared/food';
+import { FoodBackground } from './components/FoodBackground';
 import { Stars } from './components/Stars';
-import { fetchInit, fetchTier } from './lib/api';
+import { ThemeToggle } from './components/ThemeToggle';
+import { fetchInit, fetchTier, fetchUserReviews } from './lib/api';
+import { initTheme } from './lib/theme';
 
 type Tab = 'list' | 'tier';
+
+type View =
+  | { name: 'landing' }
+  | { name: 'explore' }
+  | { name: 'user'; username: string };
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'list', label: 'My Food List' },
@@ -30,18 +44,20 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 const EmptyState = ({ children }: { children: ReactNode }) => (
-  <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+  <p className="mx-auto my-4 max-w-xs rounded-xl bg-white/80 px-4 py-6 text-center text-sm font-medium text-stone-700 backdrop-blur dark:bg-black/45 dark:text-stone-200">
     {children}
   </p>
 );
 
-const MyFoodList = ({ reviews }: { reviews: FoodReview[] }) => {
+const FoodList = ({
+  reviews,
+  emptyMessage = "No reviews yet. Add the first place you've eaten at!",
+}: {
+  reviews: FoodReview[];
+  emptyMessage?: string;
+}) => {
   if (reviews.length === 0) {
-    return (
-      <EmptyState>
-        No reviews yet. Add the first place you've eaten at!
-      </EmptyState>
-    );
+    return <EmptyState>{emptyMessage}</EmptyState>;
   }
   return (
     <ul className="flex flex-col gap-2">
@@ -152,7 +168,167 @@ const FoodTier = ({ foods }: { foods: string[] }) => {
   );
 };
 
+const BackButton = ({ onClick }: { onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    aria-label="Back"
+    className="shrink-0 rounded-full p-1.5 text-lg leading-none text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+  >
+    ←
+  </button>
+);
+
+const FALLBACK_AVATAR = '/snoo.png';
+
+const Avatar = ({
+  url,
+  username,
+}: {
+  url: string | null;
+  username: string | null;
+}) => {
+  const [failed, setFailed] = useState(false);
+  return (
+    <img
+      src={url && !failed ? url : FALLBACK_AVATAR}
+      alt={username ? `u/${username}` : 'Snoo'}
+      onError={() => setFailed(true)}
+      className="h-25 w-auto max-w-full object-contain drop-shadow-lg"
+    />
+  );
+};
+
+const Landing = ({
+  data,
+  onExplore,
+  onLookup,
+}: {
+  data: InitResponse | null;
+  onExplore: () => void;
+  onLookup: (username: string) => void;
+}) => {
+  const [username, setUsername] = useState('');
+  const trimmed = username.trim().replace(/^\/?u\//i, '');
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (trimmed) onLookup(trimmed);
+  };
+
+  return (
+    <div className="relative flex h-full flex-col items-center justify-center gap-4 overflow-y-auto px-6 py-6 text-center">
+      <ThemeToggle className="absolute top-3 right-3" />
+      <p className="rounded-full bg-white/85 px-3 py-1 text-sm font-bold text-[#d93900] shadow-sm dark:bg-black/40 dark:text-orange-300">
+        {data?.subredditName ? `r/${data.subredditName}` : '\u00a0'}
+      </p>
+      <Avatar url={data?.avatarUrl ?? null} username={data?.username ?? null} />
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-extrabold text-stone-900 dark:text-white">
+          {data?.username ? `Hey u/${data.username}!` : '🍔 Food Tier'}
+        </h1>
+        <p className="max-w-xs text-sm font-medium text-stone-800 dark:text-orange-100/90">
+          Rate the spots you eat at, build your personal food list, and see
+          which places the community ranks top tier for every dish.
+        </p>
+      </div>
+      <div className="flex w-full max-w-xs gap-2">
+        <button
+          onClick={onExplore}
+          className="flex-1 rounded-full bg-[#d93900] px-4 py-2.5 font-bold text-white shadow-md cursor-pointer hover:bg-[#c23300] transition-colors"
+        >
+          Explore
+        </button>
+        <button
+          onClick={(e) => requestExpandedMode(e.nativeEvent, 'create')}
+          className="flex-1 rounded-full bg-white px-4 py-2.5 font-bold text-[#d93900] shadow-md cursor-pointer hover:bg-orange-50 transition-colors dark:bg-gray-900 dark:text-orange-300 dark:hover:bg-gray-800"
+        >
+          + Add review
+        </button>
+      </div>
+      <form onSubmit={submit} className="flex w-full max-w-xs gap-2">
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Enter a username"
+          aria-label="Username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          maxLength={30}
+          className="min-w-0 flex-1 rounded-full border border-white/60 bg-white/90 px-4 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-[#d93900] dark:border-gray-700 dark:bg-gray-900/90 dark:text-gray-100"
+        />
+        <button
+          type="submit"
+          disabled={!trimmed}
+          className="shrink-0 rounded-full bg-stone-900 px-4 py-2 text-sm font-bold text-white shadow-sm cursor-pointer hover:bg-stone-800 transition-colors disabled:cursor-not-allowed disabled:opacity-60 dark:bg-orange-300 dark:text-stone-900 dark:hover:bg-orange-200"
+        >
+          View list
+        </button>
+      </form>
+    </div>
+  );
+};
+
+const UserList = ({
+  username,
+  onBack,
+}: {
+  username: string;
+  onBack: () => void;
+}) => {
+  const [result, setResult] = useState<
+    { for: string } & (
+      { ok: true; data: UserReviewsResponse } | { ok: false; error: string }
+    )
+  >();
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchUserReviews(username)
+      .then(
+        (data) => !cancelled && setResult({ for: username, ok: true, data })
+      )
+      .catch((err: Error) => {
+        if (!cancelled)
+          setResult({ for: username, ok: false, error: err.message });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [username]);
+
+  const current = result?.for === username ? result : undefined;
+
+  return (
+    <div className="flex h-full flex-col">
+      <header className="flex items-center gap-2 px-4 pt-4 pb-2 border-b border-white/50 bg-white/75 backdrop-blur dark:border-white/10 dark:bg-black/45">
+        <BackButton onClick={onBack} />
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-bold text-gray-900 dark:text-white">
+            u/{current?.ok ? current.data.username : username}
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Food list</p>
+        </div>
+        <ThemeToggle className="ml-auto" />
+      </header>
+      <main className="flex-1 overflow-y-auto px-4 py-3">
+        {!current ? (
+          <EmptyState>Loading…</EmptyState>
+        ) : !current.ok ? (
+          <EmptyState>Couldn't load: {current.error}</EmptyState>
+        ) : (
+          <FoodList
+            reviews={current.data.reviews}
+            emptyMessage={`u/${current.data.username} hasn't reviewed any food yet.`}
+          />
+        )}
+      </main>
+    </div>
+  );
+};
+
 export const Splash = () => {
+  const [view, setView] = useState<View>({ name: 'landing' });
   const [tab, setTab] = useState<Tab>('list');
   const [data, setData] = useState<InitResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -178,40 +354,62 @@ export const Splash = () => {
     };
   }, [load]);
 
-  return (
-    <div className="flex h-full flex-col bg-gray-50 dark:bg-gray-900">
-      <header className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            🍔 Food Tier
-          </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-            {data?.username ? `u/${data.username}` : 'Rate the spots you love'}
-          </p>
-        </div>
-        <button
-          className="shrink-0 rounded-full bg-[#d93900] px-4 py-2 text-sm font-semibold text-white cursor-pointer hover:bg-[#c23300] transition-colors"
-          onClick={(e) => requestExpandedMode(e.nativeEvent, 'create')}
-        >
-          + Add review
-        </button>
-      </header>
+  const goHome = () => setView({ name: 'landing' });
 
-      <nav className="flex gap-1 px-4 border-b border-gray-200 dark:border-gray-700">
-        {TABS.map((t) => (
+  if (view.name === 'landing') {
+    return (
+      <Landing
+        data={data}
+        onExplore={() => setView({ name: 'explore' })}
+        onLookup={(username) => setView({ name: 'user', username })}
+      />
+    );
+  }
+
+  if (view.name === 'user') {
+    return <UserList username={view.username} onBack={goHome} />;
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="bg-white/75 backdrop-blur dark:bg-black/45">
+        <header className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
+          <BackButton onClick={goHome} />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              🍔 Food Tier
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {data?.username
+                ? `u/${data.username}`
+                : 'Rate the spots you love'}
+            </p>
+          </div>
+          <ThemeToggle />
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3 py-2 text-sm font-medium cursor-pointer border-b-2 -mb-px transition-colors ${
-              tab === t.id
-                ? 'border-[#d93900] text-[#d93900]'
-                : 'border-transparent text-gray-500 dark:text-gray-400'
-            }`}
+            className="shrink-0 rounded-full bg-[#d93900] px-4 py-2 text-sm font-semibold text-white cursor-pointer hover:bg-[#c23300] transition-colors"
+            onClick={(e) => requestExpandedMode(e.nativeEvent, 'create')}
           >
-            {t.label}
+            + Add review
           </button>
-        ))}
-      </nav>
+        </header>
+
+        <nav className="flex gap-1 px-4 border-b border-white/50 dark:border-white/10">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-3 py-2 text-sm font-medium cursor-pointer border-b-2 -mb-px transition-colors ${
+                tab === t.id
+                  ? 'border-[#d93900] text-[#d93900]'
+                  : 'border-transparent text-stone-600 dark:text-stone-300'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       <main className="flex-1 overflow-y-auto px-4 py-3">
         {error ? (
@@ -219,7 +417,7 @@ export const Splash = () => {
         ) : !data ? (
           <EmptyState>Loading…</EmptyState>
         ) : tab === 'list' ? (
-          <MyFoodList reviews={data.myList} />
+          <FoodList reviews={data.myList} />
         ) : (
           <FoodTier foods={data.foods} />
         )}
@@ -228,8 +426,11 @@ export const Splash = () => {
   );
 };
 
+initTheme();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <FoodBackground />
     <Splash />
   </StrictMode>
 );

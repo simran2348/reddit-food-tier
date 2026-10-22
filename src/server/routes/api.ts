@@ -1,11 +1,12 @@
 import { Hono } from 'hono';
-import { reddit } from '@devvit/web/server';
+import { context, reddit } from '@devvit/web/server';
 import type {
   CreateReviewRequest,
   CreateReviewResponse,
   ErrorResponse,
   InitResponse,
   TierResponse,
+  UserReviewsResponse,
 } from '../../shared/api';
 import { isValidRating } from '../../shared/food';
 import { createReviewPost, postUrl } from '../core/post';
@@ -27,13 +28,56 @@ export const api = new Hono();
 api.get('/init', async (c) => {
   try {
     const username = (await reddit.getCurrentUsername()) ?? null;
-    const [myList, foods] = await Promise.all([
+    const [myList, foods, avatarUrl] = await Promise.all([
       username ? getUserReviews(username) : Promise.resolve([]),
       getTopFoods(),
+      username
+        ? reddit.getSnoovatarUrl(username).catch(() => undefined)
+        : Promise.resolve(undefined),
     ]);
-    return c.json<InitResponse>({ username, myList, foods });
+    return c.json<InitResponse>({
+      username,
+      avatarUrl: avatarUrl ?? null,
+      subredditName: context.subredditName ?? '',
+      myList,
+      foods,
+    });
   } catch (error) {
     console.error('API init error:', error);
+    return c.json<ErrorResponse>(
+      { status: 'error', message: errorMessage(error) },
+      500
+    );
+  }
+});
+
+api.get('/users/:username/reviews', async (c) => {
+  const input = c.req
+    .param('username')
+    .trim()
+    .replace(/^\/?u\//i, '');
+  if (!input) {
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'username is required' },
+      400
+    );
+  }
+  try {
+    // Reviews are keyed by the exact username, so resolve its canonical casing.
+    const user = await reddit.getUserByUsername(input).catch(() => undefined);
+    if (!user) {
+      return c.json<ErrorResponse>(
+        { status: 'error', message: `u/${input} not found` },
+        404
+      );
+    }
+    const username = user.username;
+    return c.json<UserReviewsResponse>({
+      username,
+      reviews: await getUserReviews(username),
+    });
+  } catch (error) {
+    console.error(`API user reviews error for ${input}:`, error);
     return c.json<ErrorResponse>(
       { status: 'error', message: errorMessage(error) },
       500

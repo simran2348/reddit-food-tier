@@ -22,8 +22,15 @@ export type ErrorResponse = {
 
 export type InitResponse = {
   username: string | null;
+  avatarUrl: string | null;
+  subredditName: string;
   myList: FoodReview[];
   foods: string[];
+};
+
+export type UserReviewsResponse = {
+  username: string;
+  reviews: FoodReview[];
 };
 
 export type TierResponse = {

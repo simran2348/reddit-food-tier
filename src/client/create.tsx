@@ -4,8 +4,10 @@ import { exitExpandedMode, navigateTo, showToast } from '@devvit/web/client';
 import { StrictMode, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { isValidRating } from '../shared/food';
+import { FoodBackground } from './components/FoodBackground';
 import { Stars } from './components/Stars';
 import { createReview } from './lib/api';
+import { initTheme } from './lib/theme';
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#d93900]';
@@ -40,7 +42,7 @@ export const Create = () => {
 
   if (done) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 p-6 bg-gray-50 dark:bg-gray-900">
+      <div className="flex h-full flex-col items-center justify-center gap-4 p-6">
         <p className="text-4xl">🎉</p>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">
           Review posted
@@ -68,7 +70,7 @@ export const Create = () => {
   return (
     <form
       onSubmit={submit}
-      className="mx-auto flex h-full max-w-md flex-col gap-4 p-4 bg-gray-50 dark:bg-gray-900"
+      className="mx-auto flex h-full max-w-md flex-col gap-4 p-4"
     >
       <h1 className="text-xl font-bold text-gray-900 dark:text-white">
         Add a review
@@ -123,8 +125,11 @@ export const Create = () => {
   );
 };
 
+initTheme();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <FoodBackground />
     <Create />
   </StrictMode>
 );
