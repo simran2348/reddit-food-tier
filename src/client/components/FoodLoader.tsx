@@ -35,22 +35,6 @@ const VEGGIES: Veggie[] = [
     ),
   },
   {
-    name: 'mushroom',
-    juice: '#c98a5a',
-    art: (
-      <>
-        <path
-          d="M25 34h14l2 20a4 4 0 0 1-4 4H27a4 4 0 0 1-4-4z"
-          fill="#f7e7d0"
-        />
-        <path d="M8 36C8 20 19 10 32 10s24 10 24 26z" fill="#c98a5a" />
-        <circle cx="22" cy="24" r="3" fill="#e9b98d" />
-        <circle cx="40" cy="20" r="2.4" fill="#e9b98d" />
-        <circle cx="44" cy="30" r="2" fill="#e9b98d" />
-      </>
-    ),
-  },
-  {
     name: 'eggplant',
     juice: '#7b3f86',
     art: (
@@ -126,23 +110,37 @@ const DROPLETS = [
 ];
 
 /**
- * Bouncing veggie loader: each bounce squashes on landing, splashes juice
- * and swaps to the next veggie while it's in the air.
+ * Bouncing veggie loader. Each bounce starts on the ground (squash + splash),
+ * rises, falls and lands; the next veggie takes over exactly on landing.
+ * Plays one bounce per veggie, then calls `onDone`.
  */
-export const FoodLoader = ({ label = 'Loading…' }: { label?: string }) => {
+export const FoodLoader = ({ onDone }: { onDone: () => void }) => {
   const [index, setIndex] = useState(0);
-  const veggie = VEGGIES[index % VEGGIES.length];
+  const veggie = VEGGIES[index];
   if (!veggie) return null;
+
+  const style: CSSProperties & Record<'--bounces', number> = {
+    '--bounces': VEGGIES.length,
+  };
 
   return (
     <div
       role="status"
-      className="flex h-full flex-col items-center justify-center gap-4"
+      aria-label="Loading"
+      className="flex h-full flex-col items-center justify-center gap-4 bg-black"
+      style={style}
     >
       <div className="relative h-36 w-32">
         <div
           className="loader-veggie absolute top-0 left-1/2 h-16 w-16 -ml-8"
-          onAnimationIteration={() => setIndex((i) => i + 1)}
+          // The spinning svg inside fires its own (bubbling) events; only
+          // the bounce itself should drive the swaps.
+          onAnimationIteration={(e) => {
+            if (e.target === e.currentTarget) setIndex((i) => i + 1);
+          }}
+          onAnimationEnd={(e) => {
+            if (e.target === e.currentTarget) onDone();
+          }}
         >
           <svg
             viewBox="0 0 64 64"
@@ -153,26 +151,27 @@ export const FoodLoader = ({ label = 'Loading…' }: { label?: string }) => {
           </svg>
         </div>
         {DROPLETS.map((d, i) => {
-          const style: CSSProperties & Record<'--dx' | '--dy', string> = {
-            width: d.size,
-            height: d.size,
-            marginLeft: -d.size / 2,
-            backgroundColor: veggie.juice,
-            '--dx': d.x,
-            '--dy': d.y,
-          };
-          // Keyed by bounce so each splash restarts in sync with the landing.
+          const dropletStyle: CSSProperties & Record<'--dx' | '--dy', string> =
+            {
+              width: d.size,
+              height: d.size,
+              marginLeft: -d.size / 2,
+              backgroundColor: veggie.juice,
+              '--dx': d.x,
+              '--dy': d.y,
+            };
+          // Keyed by bounce so each splash starts exactly on its landing.
           return (
             <span
               key={`${index}-${i}`}
               className="loader-droplet absolute bottom-3 left-1/2 rounded-full"
-              style={style}
+              style={dropletStyle}
             />
           );
         })}
-        <span className="loader-shadow absolute bottom-1 left-1/2 h-2.5 w-14 -ml-7 rounded-full bg-ink/15" />
+        <span className="loader-shadow absolute bottom-1 left-1/2 h-2.5 w-14 -ml-7 rounded-full bg-white/20" />
       </div>
-      <span className="text-sm font-semibold text-muted">{label}</span>
+      <span className="text-sm font-semibold text-white/70">Loading…</span>
     </div>
   );
 };

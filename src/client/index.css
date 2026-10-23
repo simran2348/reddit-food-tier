@@ -22,19 +22,19 @@
   --color-accent: var(--accent);
 }
 
-/* FoodLoader: a veggie drops, squashes on landing, splashes and bounces back
-   up spinning. All parts share one 0.7s cycle; landing is at 50%. */
+/* FoodLoader: each 0.7s bounce starts and ends on the ground, so the veggie
+   swaps exactly on landing. Runs once per veggie (--bounces), then ends. */
 .loader-veggie {
   transform-origin: 50% 100%;
-  animation: loader-bounce 0.7s infinite;
+  animation: loader-bounce 0.7s var(--bounces, 1);
 }
 
 .loader-spin {
-  animation: loader-spin 0.7s infinite linear;
+  animation: loader-spin 0.7s var(--bounces, 1) linear;
 }
 
 .loader-shadow {
-  animation: loader-shadow 0.7s infinite;
+  animation: loader-shadow 0.7s var(--bounces, 1);
 }
 
 .loader-droplet {
@@ -43,60 +43,65 @@
 }
 
 @keyframes loader-bounce {
+  /* Landed: squashed flat. */
   0% {
-    transform: translateY(0);
+    transform: translateY(70px) scale(1.18, 0.8);
+    animation-timing-function: ease-out;
+  }
+  /* Springs back up. */
+  12% {
+    transform: translateY(56px) scale(0.94, 1.08);
+    animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
+  }
+  /* Top of the bounce, then falls faster and faster. */
+  50% {
+    transform: translateY(0) scale(1);
     animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
   }
-  46% {
+  96% {
     transform: translateY(68px) scale(1);
   }
-  52% {
-    transform: translateY(70px) scale(1.18, 0.8);
-    animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
-  }
-  60% {
-    transform: translateY(60px) scale(0.94, 1.08);
-  }
   100% {
-    transform: translateY(0);
+    transform: translateY(70px) scale(1.18, 0.8);
   }
 }
 
 @keyframes loader-spin {
   from {
-    transform: rotate(-25deg);
+    transform: rotate(0deg);
   }
   to {
-    transform: rotate(335deg);
+    transform: rotate(360deg);
   }
 }
 
 @keyframes loader-shadow {
   0%,
   100% {
-    transform: scaleX(0.4);
-    opacity: 0.4;
-  }
-  50% {
     transform: scaleX(1.05);
     opacity: 1;
   }
+  50% {
+    transform: scaleX(0.4);
+    opacity: 0.4;
+  }
 }
 
+/* Juice splashes out from the landing spot and falls away. */
 @keyframes loader-droplet {
-  0%,
-  48% {
+  0% {
     opacity: 0;
     transform: translate(0, 0) scale(0);
   }
-  54% {
+  8% {
     opacity: 1;
     transform: translate(calc(var(--dx) * 0.45), calc(var(--dy) * 0.7)) scale(1);
   }
-  76% {
+  30% {
     opacity: 1;
     transform: translate(var(--dx), var(--dy)) scale(0.9);
   }
+  55%,
   100% {
     opacity: 0;
     transform: translate(calc(var(--dx) * 1.15), 6px) scale(0.5);
@@ -104,10 +109,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .loader-veggie,
-  .loader-spin,
-  .loader-shadow,
-  .loader-droplet {
-    animation-duration: 2.4s;
+  .loader-spin {
+    animation-name: none;
   }
 }

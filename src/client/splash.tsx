@@ -13,11 +13,10 @@ import { initTheme, syncTheme } from './lib/theme';
 
 export const Splash = () => {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
-  const artLoaded = useImageLoaded(ART_URL);
-  // Which avatar to show is only known once the profile has loaded.
-  const avatarLoaded = useImageLoaded(
-    profile ? (profile.avatarUrl ?? FALLBACK_AVATAR_URL) : null
-  );
+  const [intro, setIntro] = useState(true);
+  // Warm the cache while the intro plays so the art and avatar are ready.
+  useImageLoaded(ART_URL);
+  useImageLoaded(profile ? (profile.avatarUrl ?? FALLBACK_AVATAR_URL) : null);
 
   useEffect(() => {
     fetchProfile()
@@ -32,14 +31,8 @@ export const Splash = () => {
       });
   }, []);
 
-  if (!artLoaded || !avatarLoaded) {
-    return (
-      <>
-        <FoodBackground />
-        <FoodLoader />
-      </>
-    );
-  }
+  // The veggie intro always plays in full on every visit.
+  if (intro) return <FoodLoader onDone={() => setIntro(false)} />;
 
   return (
     <>
