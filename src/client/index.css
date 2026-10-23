@@ -21,3 +21,93 @@
   --color-field: var(--field);
   --color-accent: var(--accent);
 }
+
+/* FoodLoader: a veggie drops, squashes on landing, splashes and bounces back
+   up spinning. All parts share one 0.7s cycle; landing is at 50%. */
+.loader-veggie {
+  transform-origin: 50% 100%;
+  animation: loader-bounce 0.7s infinite;
+}
+
+.loader-spin {
+  animation: loader-spin 0.7s infinite linear;
+}
+
+.loader-shadow {
+  animation: loader-shadow 0.7s infinite;
+}
+
+.loader-droplet {
+  opacity: 0;
+  animation: loader-droplet 0.7s forwards;
+}
+
+@keyframes loader-bounce {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+  46% {
+    transform: translateY(68px) scale(1);
+  }
+  52% {
+    transform: translateY(70px) scale(1.18, 0.8);
+    animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
+  }
+  60% {
+    transform: translateY(60px) scale(0.94, 1.08);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes loader-spin {
+  from {
+    transform: rotate(-25deg);
+  }
+  to {
+    transform: rotate(335deg);
+  }
+}
+
+@keyframes loader-shadow {
+  0%,
+  100% {
+    transform: scaleX(0.4);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scaleX(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes loader-droplet {
+  0%,
+  48% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0);
+  }
+  54% {
+    opacity: 1;
+    transform: translate(calc(var(--dx) * 0.45), calc(var(--dy) * 0.7)) scale(1);
+  }
+  76% {
+    opacity: 1;
+    transform: translate(var(--dx), var(--dy)) scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--dx) * 1.15), 6px) scale(0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-veggie,
+  .loader-spin,
+  .loader-shadow,
+  .loader-droplet {
+    animation-duration: 2.4s;
+  }
+}

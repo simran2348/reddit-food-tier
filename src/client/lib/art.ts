@@ -2,19 +2,26 @@ import { useEffect, useState } from 'react';
 
 export const ART_URL = '/art/h2.png';
 
-/** True once the background art has downloaded (or failed to). */
-export const useArtLoaded = () => {
-  const [loaded, setLoaded] = useState(false);
+/** Shown when a user has no Reddit avatar (or it fails to load). */
+export const FALLBACK_AVATAR_URL = '/snoo.png';
+
+/**
+ * True once the image at `src` has downloaded (or failed to). Stays false
+ * while `src` is null, e.g. before we know which image to load.
+ */
+export const useImageLoaded = (src: string | null) => {
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   useEffect(() => {
+    if (!src) return;
     const img = new Image();
-    const done = () => setLoaded(true);
+    const done = () => setLoadedSrc(src);
     img.onload = done;
     img.onerror = done;
-    img.src = ART_URL;
+    img.src = src;
     return () => {
       img.onload = null;
       img.onerror = null;
     };
-  }, []);
-  return loaded;
+  }, [src]);
+  return src !== null && loadedSrc === src;
 };

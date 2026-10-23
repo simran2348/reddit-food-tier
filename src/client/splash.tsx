@@ -5,14 +5,19 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { ProfileResponse } from '../shared/api';
 import { FoodBackground } from './components/FoodBackground';
-import { Avatar, Loader } from './components/ui';
+import { FoodLoader } from './components/FoodLoader';
+import { Avatar } from './components/ui';
 import { fetchProfile } from './lib/api';
-import { useArtLoaded } from './lib/art';
+import { ART_URL, FALLBACK_AVATAR_URL, useImageLoaded } from './lib/art';
 import { initTheme, syncTheme } from './lib/theme';
 
 export const Splash = () => {
-  const artLoaded = useArtLoaded();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const artLoaded = useImageLoaded(ART_URL);
+  // Which avatar to show is only known once the profile has loaded.
+  const avatarLoaded = useImageLoaded(
+    profile ? (profile.avatarUrl ?? FALLBACK_AVATAR_URL) : null
+  );
 
   useEffect(() => {
     fetchProfile()
@@ -20,14 +25,18 @@ export const Splash = () => {
         setProfile(res);
         syncTheme(res.theme);
       })
-      .catch((err) => console.error('Failed to load profile', err));
+      .catch((err) => {
+        console.error('Failed to load profile', err);
+        // Carry on with the Snoo and a generic welcome.
+        setProfile({ username: null, avatarUrl: null, theme: null });
+      });
   }, []);
 
-  if (!artLoaded) {
+  if (!artLoaded || !avatarLoaded) {
     return (
       <>
         <FoodBackground />
-        <Loader />
+        <FoodLoader />
       </>
     );
   }

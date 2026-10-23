@@ -1,20 +1,10 @@
 import { useState, type ReactNode } from 'react';
+import { FALLBACK_AVATAR_URL } from '../lib/art';
 
 export const EmptyState = ({ children }: { children: ReactNode }) => (
   <p className="mx-auto my-4 max-w-xs rounded-xl border border-line bg-surface px-4 py-6 text-center text-sm font-medium text-muted backdrop-blur">
     {children}
   </p>
-);
-
-/** Themed spinner. */
-export const Loader = ({ label = 'Loading…' }: { label?: string }) => (
-  <div
-    role="status"
-    className="flex h-full flex-col items-center justify-center gap-3"
-  >
-    <span className="h-10 w-10 animate-spin rounded-full border-4 border-cta/25 border-t-cta" />
-    <span className="text-sm font-medium text-muted">{label}</span>
-  </div>
 );
 
 export const BackButton = ({ onClick }: { onClick: () => void }) => (
@@ -75,8 +65,6 @@ export const Segmented = <T extends string>({
   </div>
 );
 
-const FALLBACK_AVATAR = '/snoo.png';
-
 export const Avatar = ({
   url,
   username,
@@ -89,7 +77,7 @@ export const Avatar = ({
   const [failed, setFailed] = useState(false);
   return (
     <img
-      src={url && !failed ? url : FALLBACK_AVATAR}
+      src={url && !failed ? url : FALLBACK_AVATAR_URL}
       alt={username ? `u/${username}` : 'Snoo'}
       onError={() => setFailed(true)}
       className={`w-auto max-w-full object-contain drop-shadow-lg ${className}`}

@@ -110,6 +110,10 @@ initTheme();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <FoodBackground />
-    <App />
+    {/* Reddit lets users widen the expanded view (desktop / fullscreen);
+        keep the app a phone-like column and let the background fill the rest. */}
+    <div className="mx-auto h-full w-full max-w-[768px] border-line min-[769px]:border-x min-[769px]:shadow-xl">
+      <App />
+    </div>
   </StrictMode>
 );
