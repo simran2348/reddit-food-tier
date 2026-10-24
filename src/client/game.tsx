@@ -21,7 +21,7 @@ import {
   SearchIcon,
 } from './components/icons';
 import { MapView } from './components/MapView';
-import { MyFood } from './components/MyFood';
+import { MyFood, type MyFoodView } from './components/MyFood';
 import { Settings } from './components/Settings';
 import { fetchInit } from './lib/api';
 import { initTheme, syncTheme } from './lib/theme';
@@ -50,6 +50,7 @@ const BottomNav = ({
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
+          title={t.label}
           aria-current={active ? 'page' : undefined}
           className={`flex flex-1 flex-col items-center gap-0.5 pt-2 pb-2.5 text-[11px] font-bold cursor-pointer transition-colors ${
             active ? 'text-cta' : 'text-muted hover:text-ink'
@@ -65,6 +66,7 @@ const BottomNav = ({
 
 export const App = () => {
   const [tab, setTab] = useState<Tab>('food');
+  const [foodView, setFoodView] = useState<MyFoodView>('list');
   const [data, setData] = useState<InitResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const themeSynced = useRef(false);
@@ -90,9 +92,19 @@ export const App = () => {
     <div className="flex h-full flex-col">
       <div className="min-h-0 flex-1">
         {tab === 'food' ? (
-          <MyFood data={data} error={error} />
+          <MyFood
+            data={data}
+            error={error}
+            view={foodView}
+            onViewChange={setFoodView}
+            onAdded={() => {
+              load();
+              // Show the new entries in the tier list.
+              setFoodView('tier');
+            }}
+          />
         ) : tab === 'add' ? (
-          <AddReview onPosted={load} />
+          <AddReview foods={data?.foods ?? []} onPosted={load} />
         ) : tab === 'map' ? (
           <MapView data={data} />
         ) : tab === 'explore' ? (

@@ -100,20 +100,25 @@ export const saveReview = async (
     await redis.hSet(keys.foodNames(), { [foodKey]: review.food.trim() });
   }
 
-  // Update the per-food tier: places ranked by average rating.
-  const sum = await redis.hIncrBy(
-    keys.tierStats(foodKey),
-    `${placeKey}:sum`,
-    review.rating
+  // Update the per-food tier: places ranked by average rating. Sums are
+  // kept in tenths so one-decimal ratings (7.5) stay exact integers.
+  const statsKey = keys.tierStats(foodKey);
+  const tenthsField = `${placeKey}:sumTenths`;
+  if (!(await redis.hGet(statsKey, tenthsField))) {
+    // Places rated before decimals stored a whole-number `:sum`.
+    const oldSum = Number((await redis.hGet(statsKey, `${placeKey}:sum`)) ?? 0);
+    if (oldSum)
+      await redis.hSet(statsKey, { [tenthsField]: String(oldSum * 10) });
+  }
+  const sumTenths = await redis.hIncrBy(
+    statsKey,
+    tenthsField,
+    Math.round(review.rating * 10)
   );
-  const count = await redis.hIncrBy(
-    keys.tierStats(foodKey),
-    `${placeKey}:count`,
-    1
-  );
+  const count = await redis.hIncrBy(statsKey, `${placeKey}:count`, 1);
   await redis.zAdd(keys.tier(foodKey), {
     member: placeKey,
-    score: sum / count,
+    score: sumTenths / 10 / count,
   });
   if (!(await redis.hGet(keys.placeNames(foodKey), placeKey))) {
     await redis.hSet(keys.placeNames(foodKey), {
@@ -155,6 +160,23 @@ export const getTopFoods = async (limit = 20): Promise<string[]> => {
     foods.map(({ member }) => member)
   );
   return foods.map(({ member }, i) => names[i] ?? member);
+};
+
+/** Places shown in the combined "All" tier. */
+const ALL_TIER_LIMIT = 50;
+
+/** Every food category's tier combined, best averages first. */
+export const getAllTiers = async (): Promise<TierEntry[]> => {
+  const foods = await getTopFoods();
+  const tiers = await Promise.all(
+    foods.map(async (food) =>
+      (await getFoodTier(food)).map((entry) => ({ ...entry, food }))
+    )
+  );
+  return tiers
+    .flat()
+    .sort((a, b) => b.average - a.average || b.count - a.count)
+    .slice(0, ALL_TIER_LIMIT);
 };
 
 export const getFoodTier = async (food: string): Promise<TierEntry[]> => {

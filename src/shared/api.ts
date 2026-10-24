@@ -33,6 +33,8 @@ export type TierEntry = {
   place: string;
   average: number;
   count: number;
+  /** Which food category it's ranked in (set in the "All" tier). */
+  food?: string;
 };
 
 export type ErrorResponse = {
@@ -67,6 +69,7 @@ export type SaveThemeRequest = {
 };
 
 export type TierResponse = {
+  /** Empty for the "All" tier (every food category combined). */
   food: string;
   entries: TierEntry[];
 };
@@ -89,6 +92,20 @@ export type ImportPostResponse = {
   body: string;
   images: string[];
   postedAt: number;
+};
+
+/** The user's own posts in this subreddit, to pick one to import. */
+export type MyPostsResponse = {
+  posts: {
+    postId: string;
+    title: string;
+    image: string | null;
+    postedAt: number;
+    /** Already turned into a review. */
+    imported: boolean;
+  }[];
+  /** Pass as `after` to load the next page; null when there are no more. */
+  nextCursor: string | null;
 };
 
 export type PlaceSearchResponse = {

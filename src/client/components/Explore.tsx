@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import type { UserReviewsResponse } from '../../shared/api';
 import { fetchUserReviews } from '../lib/api';
 import { FoodList } from './reviews';
-import { EmptyState, ScreenHeader } from './ui';
+import { EmptyState, LoadingState, ScreenHeader } from './ui';
 
 type Result =
   { ok: true; data: UserReviewsResponse } | { ok: false; error: string };
@@ -26,7 +26,7 @@ const UserReviews = ({ username }: { username: string }) => {
   }, [username]);
 
   const current = result?.for === username ? result : undefined;
-  if (!current) return <EmptyState>Loading…</EmptyState>;
+  if (!current) return <LoadingState />;
   if (!current.ok)
     return <EmptyState>Couldn't load: {current.error}</EmptyState>;
 

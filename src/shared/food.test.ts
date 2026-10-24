@@ -19,12 +19,16 @@ test('tierFor maps averages to tiers', () => {
   assert.equal(tierFor(2), 'D');
 });
 
-test('isValidRating accepts whole numbers from 1 to 10', () => {
+test('isValidRating accepts 1 to 10 with one decimal place', () => {
   assert.equal(isValidRating(1), true);
   assert.equal(isValidRating(10), true);
+  assert.equal(isValidRating(7.5), true);
+  assert.equal(isValidRating(8.3), true);
   assert.equal(isValidRating(0), false);
-  assert.equal(isValidRating(11), false);
-  assert.equal(isValidRating(7.5), false);
+  assert.equal(isValidRating(0.9), false);
+  assert.equal(isValidRating(10.1), false);
+  assert.equal(isValidRating(7.25), false);
+  assert.equal(isValidRating(Number.NaN), false);
 });
 
 test('ratingToStars halves a rating out of 10', () => {

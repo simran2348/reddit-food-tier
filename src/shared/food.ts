@@ -20,5 +20,9 @@ export const tierFor = (average: number): Tier => {
 /** Rating out of 10 shown as 0–5 stars (half stars allowed). */
 export const ratingToStars = (rating: number): number => Math.round(rating) / 2;
 
+/** Ratings are 1–10 with at most one decimal place (e.g. 7.5). */
 export const isValidRating = (rating: number): boolean =>
-  Number.isInteger(rating) && rating >= MIN_RATING && rating <= MAX_RATING;
+  Number.isFinite(rating) &&
+  rating >= MIN_RATING &&
+  rating <= MAX_RATING &&
+  Number.isInteger(Math.round(rating * 1e6) / 1e5);

@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useEffect, useRef, useState } from 'react';
 import type { FoodReview, InitResponse } from '../../shared/api';
+import { PLACE_SEARCH_ENABLED } from '../lib/features';
 import { useTheme } from '../lib/theme';
 import { ReviewDetail } from './ReviewDetail';
 import { EmptyState, ScreenHeader } from './ui';
@@ -107,8 +108,9 @@ export const MapView = ({ data }: { data: InitResponse | null }) => {
         {data && placed.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 z-[500] px-4">
             <EmptyState>
-              Pick a café from the search when adding a review and it'll show up
-              here.
+              {PLACE_SEARCH_ENABLED
+                ? "Pick a café from the search when adding a review and it'll show up here."
+                : 'Location search is coming soon. Places you rate will show up here.'}
             </EmptyState>
           </div>
         )}

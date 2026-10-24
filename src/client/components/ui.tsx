@@ -7,6 +7,25 @@ export const EmptyState = ({ children }: { children: ReactNode }) => (
   </p>
 );
 
+/** Small spinning ring; takes the current text colour. */
+export const Spinner = ({ className = 'h-5 w-5' }: { className?: string }) => (
+  <span
+    aria-hidden
+    className={`inline-block shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent ${className}`}
+  />
+);
+
+/** Centred spinner with a message, for loading sections. */
+export const LoadingState = ({ label = 'Loading…' }: { label?: string }) => (
+  <div
+    role="status"
+    className="flex flex-col items-center justify-center gap-2 py-8 text-sm font-medium text-muted"
+  >
+    <Spinner className="h-7 w-7 text-cta" />
+    {label}
+  </div>
+);
+
 export const BackButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}

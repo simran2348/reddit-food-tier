@@ -5,6 +5,7 @@ import type {
   CreateReviewResponse,
   ErrorResponse,
   ImportPostResponse,
+  MyPostsResponse,
   PlaceLocation,
   PlaceSearchResponse,
   InitResponse,
@@ -18,6 +19,8 @@ import { isValidRating } from '../../shared/food';
 import {
   fetchTile,
   importPost,
+  isShareLink,
+  listMyPosts,
   parsePostId,
   searchPlaces,
 } from '../core/external';
@@ -25,6 +28,7 @@ import { createReviewPost, postUrl } from '../core/post';
 import { getUserTheme, saveUserTheme } from '../core/preferences';
 import {
   attachPostToReview,
+  getAllTiers,
   getFoodTier,
   getTopFoods,
   getUserReviews,
@@ -166,7 +170,19 @@ api.get('/import', async (c) => {
     );
   }
   try {
-    const postId = await parsePostId(c.req.query('url') ?? '');
+    const id = c.req.query('id');
+    const url = c.req.query('url') ?? '';
+    if (!id && isShareLink(url)) {
+      return c.json<ErrorResponse>(
+        {
+          status: 'error',
+          message:
+            "Share links can't be imported. Open the post and copy its full link (…/comments/…).",
+        },
+        400
+      );
+    }
+    const postId = id ? id.replace(/^t3_/, '') : parsePostId(url);
     if (!postId) {
       return c.json<ErrorResponse>(
         {
@@ -182,6 +198,32 @@ api.get('/import', async (c) => {
     return c.json<ErrorResponse>(
       { status: 'error', message: errorMessage(error) },
       400
+    );
+  }
+});
+
+api.get('/my-posts', async (c) => {
+  const username = await reddit.getCurrentUsername();
+  if (!username) {
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'You must be logged in' },
+      401
+    );
+  }
+  try {
+    const reviews = await getUserReviews(username);
+    const imported = new Set(
+      reviews.flatMap((r) => (r.postId ? [r.postId] : []))
+    );
+    const after = c.req.query('after')?.trim() || undefined;
+    return c.json<MyPostsResponse>(
+      await listMyPosts(username, imported, after)
+    );
+  } catch (error) {
+    console.error('API my-posts error:', error);
+    return c.json<ErrorResponse>(
+      { status: 'error', message: errorMessage(error) },
+      500
     );
   }
 });
@@ -214,15 +256,11 @@ api.get('/tiles/:style/:z/:x/:y', async (c) => {
 });
 
 api.get('/tier', async (c) => {
-  const food = c.req.query('food')?.trim();
-  if (!food) {
-    return c.json<ErrorResponse>(
-      { status: 'error', message: 'food is required' },
-      400
-    );
-  }
+  // No food means the combined "All" tier.
+  const food = c.req.query('food')?.trim() ?? '';
   try {
-    return c.json<TierResponse>({ food, entries: await getFoodTier(food) });
+    const entries = food ? await getFoodTier(food) : await getAllTiers();
+    return c.json<TierResponse>({ food, entries });
   } catch (error) {
     console.error(`API tier error for ${food}:`, error);
     return c.json<ErrorResponse>(
@@ -277,6 +315,13 @@ api.post('/reviews', async (c) => {
         body.importedPostId.replace(/^t3_/, ''),
         username
       );
+      const existing = await getUserReviews(username);
+      if (existing.some((r) => r.postId === source.postId)) {
+        return c.json<ErrorResponse>(
+          { status: 'error', message: "You've already added this post." },
+          409
+        );
+      }
       const saved = await saveReview({
         username,
         title,

@@ -23,7 +23,7 @@
 }
 
 /* FoodLoader: each 0.7s bounce starts and ends on the ground, so the veggie
-   swaps exactly on landing. Runs once per veggie (--bounces), then ends. */
+   swaps exactly on landing. --bounces sets how many times it repeats. */
 .loader-veggie {
   transform-origin: 50% 100%;
   animation: loader-bounce 0.7s var(--bounces, 1);

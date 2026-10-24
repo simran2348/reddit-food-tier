@@ -5,7 +5,7 @@ import { fetchTier } from '../lib/api';
 import { TIER_COLORS } from '../lib/tiers';
 import { ReviewDetail } from './ReviewDetail';
 import { Stars } from './Stars';
-import { EmptyState } from './ui';
+import { EmptyState, LoadingState } from './ui';
 
 const CARD = 'rounded-xl border border-line bg-surface backdrop-blur';
 
@@ -62,21 +62,21 @@ export const FoodList = ({
   );
 };
 
+/** Ranked places per food category; "All" (the default) combines them. */
 export const FoodTier = ({ foods }: { foods: string[] }) => {
-  const [picked, setFood] = useState<string | null>(null);
-  const food = picked ?? foods[0] ?? null;
+  // null = "All".
+  const [food, setFood] = useState<string | null>(null);
   const [tier, setTier] = useState<{ food: string; entries: TierEntry[] }>();
-  const loading = food !== null && tier?.food !== food;
+  const loading = tier?.food !== (food ?? '');
   const entries = tier?.entries ?? [];
 
   useEffect(() => {
-    if (!food) return;
     let cancelled = false;
     fetchTier(food)
       .then((res) => !cancelled && setTier(res))
       .catch((err) => {
         console.error('Failed to load tier', err);
-        if (!cancelled) setTier({ food, entries: [] });
+        if (!cancelled) setTier({ food: food ?? '', entries: [] });
       });
     return () => {
       cancelled = true;
@@ -92,6 +92,16 @@ export const FoodTier = ({ foods }: { foods: string[] }) => {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => setFood(null)}
+          className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold cursor-pointer transition-colors ${
+            food === null
+              ? 'bg-cta text-cta-ink'
+              : 'border border-line bg-surface text-ink'
+          }`}
+        >
+          All
+        </button>
         {foods.map((f) => (
           <button
             key={f}
@@ -107,16 +117,18 @@ export const FoodTier = ({ foods }: { foods: string[] }) => {
         ))}
       </div>
       {loading ? (
-        <EmptyState>Loading…</EmptyState>
+        <LoadingState />
       ) : entries.length === 0 ? (
-        <EmptyState>No places ranked for {food} yet.</EmptyState>
+        <EmptyState>
+          {food ? `No places ranked for ${food} yet.` : 'No places ranked yet.'}
+        </EmptyState>
       ) : (
         <ol className="flex flex-col gap-1.5">
           {entries.map((e, i) => {
             const tier = tierFor(e.average);
             return (
               <li
-                key={e.place}
+                key={`${e.food ?? ''}-${e.place}`}
                 className={`flex items-center gap-3 ${CARD} p-2`}
               >
                 <span className="w-5 text-right text-sm font-semibold text-muted">
@@ -127,8 +139,15 @@ export const FoodTier = ({ foods }: { foods: string[] }) => {
                 >
                   {tier}
                 </span>
-                <span className="flex-1 truncate font-medium text-ink">
-                  {e.place}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium text-ink">
+                    {e.place}
+                  </span>
+                  {e.food && (
+                    <span className="block truncate text-xs text-muted">
+                      {e.food}
+                    </span>
+                  )}
                 </span>
                 <span className="text-xs text-muted">
                   {e.average.toFixed(1)}/10 · {e.count}

@@ -4,6 +4,7 @@ import type {
   ErrorResponse,
   ImportPostResponse,
   InitResponse,
+  MyPostsResponse,
   PlaceSearchResponse,
   ProfileResponse,
   SaveThemeRequest,
@@ -28,8 +29,11 @@ export const fetchProfile = () => request<ProfileResponse>('/api/profile');
 
 export const fetchInit = () => request<InitResponse>('/api/init');
 
-export const fetchTier = (food: string) =>
-  request<TierResponse>(`/api/tier?food=${encodeURIComponent(food)}`);
+/** One food category's tier, or every category combined when `food` is null. */
+export const fetchTier = (food: string | null) =>
+  request<TierResponse>(
+    food ? `/api/tier?food=${encodeURIComponent(food)}` : '/api/tier'
+  );
 
 export const fetchUserReviews = (username: string) =>
   request<UserReviewsResponse>(
@@ -42,8 +46,16 @@ export const saveTheme = (body: SaveThemeRequest) =>
     body: JSON.stringify(body),
   });
 
-export const importPost = (url: string) =>
-  request<ImportPostResponse>(`/api/import?url=${encodeURIComponent(url)}`);
+export const fetchMyPosts = (after?: string) =>
+  request<MyPostsResponse>(
+    `/api/my-posts${after ? `?after=${encodeURIComponent(after)}` : ''}`
+  );
+
+/** Import by post id (picked from the list) or by a pasted link. */
+export const importPost = (source: { id: string } | { url: string }) =>
+  request<ImportPostResponse>(
+    `/api/import?${new URLSearchParams('id' in source ? { id: source.id } : { url: source.url })}`
+  );
 
 export const searchPlaces = (query: string) =>
   request<PlaceSearchResponse>(`/api/places?q=${encodeURIComponent(query)}`);

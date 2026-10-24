@@ -1,26 +1,29 @@
-import { useState } from 'react';
 import type { InitResponse } from '../../shared/api';
-import { Calendar } from './Calendar';
-import { FoodList, FoodTier } from './reviews';
-import { EmptyState, ScreenHeader, Segmented } from './ui';
+import { PostPicker } from './PostPicker';
+import { FoodTier } from './reviews';
+import { EmptyState, LoadingState, ScreenHeader, Segmented } from './ui';
 
-type View = 'list' | 'calendar' | 'tier';
+export type MyFoodView = 'list' | 'tier';
 
-const VIEWS: { id: View; label: string }[] = [
+const VIEWS: { id: MyFoodView; label: string }[] = [
   { id: 'list', label: 'My List' },
-  { id: 'calendar', label: 'Calendar' },
   { id: 'tier', label: 'Tier List' },
 ];
 
 export const MyFood = ({
   data,
   error,
+  view,
+  onViewChange,
+  onAdded,
 }: {
   data: InitResponse | null;
   error: string | null;
+  view: MyFoodView;
+  onViewChange: (view: MyFoodView) => void;
+  /** Posts were added to the tier list from the post picker. */
+  onAdded: () => void;
 }) => {
-  const [view, setView] = useState<View>('list');
-
   return (
     <div className="flex h-full flex-col">
       <ScreenHeader
@@ -30,15 +33,17 @@ export const MyFood = ({
         }
       />
       <main className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-        <Segmented options={VIEWS} value={view} onChange={setView} />
+        <Segmented options={VIEWS} value={view} onChange={onViewChange} />
         {error ? (
           <EmptyState>Couldn't load: {error}</EmptyState>
         ) : !data ? (
-          <EmptyState>Loading…</EmptyState>
+          <LoadingState />
         ) : view === 'list' ? (
-          <FoodList reviews={data.myList} />
-        ) : view === 'calendar' ? (
-          <Calendar reviews={data.myList} />
+          <PostPicker
+            subredditName={data.subredditName}
+            foods={data.foods}
+            onAdded={onAdded}
+          />
         ) : (
           <FoodTier foods={data.foods} />
         )}

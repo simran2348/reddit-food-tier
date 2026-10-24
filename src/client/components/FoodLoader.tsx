@@ -112,15 +112,28 @@ const DROPLETS = [
 /**
  * Bouncing veggie loader. Each bounce starts on the ground (squash + splash),
  * rises, falls and lands; the next veggie takes over exactly on landing.
- * Plays one bounce per veggie, then calls `onDone`.
+ *
+ * Always plays at least one bounce per veggie, then keeps cycling until
+ * `ready` is true and calls `onDone` on the next landing.
  */
-export const FoodLoader = ({ onDone }: { onDone: () => void }) => {
-  const [index, setIndex] = useState(0);
-  const veggie = VEGGIES[index];
+export const FoodLoader = ({
+  ready,
+  onDone,
+}: {
+  ready: boolean;
+  onDone: () => void;
+}) => {
+  const [bounces, setBounces] = useState(0);
+  const veggie = VEGGIES[bounces % VEGGIES.length];
   if (!veggie) return null;
 
-  const style: CSSProperties & Record<'--bounces', number> = {
-    '--bounces': VEGGIES.length,
+  const style: CSSProperties & Record<'--bounces', string> = {
+    '--bounces': 'infinite',
+  };
+
+  const land = () => {
+    if (bounces + 1 >= VEGGIES.length && ready) onDone();
+    else setBounces(bounces + 1);
   };
 
   return (
@@ -136,10 +149,7 @@ export const FoodLoader = ({ onDone }: { onDone: () => void }) => {
           // The spinning svg inside fires its own (bubbling) events; only
           // the bounce itself should drive the swaps.
           onAnimationIteration={(e) => {
-            if (e.target === e.currentTarget) setIndex((i) => i + 1);
-          }}
-          onAnimationEnd={(e) => {
-            if (e.target === e.currentTarget) onDone();
+            if (e.target === e.currentTarget) land();
           }}
         >
           <svg
@@ -163,7 +173,7 @@ export const FoodLoader = ({ onDone }: { onDone: () => void }) => {
           // Keyed by bounce so each splash starts exactly on its landing.
           return (
             <span
-              key={`${index}-${i}`}
+              key={`${bounces}-${i}`}
               className="loader-droplet absolute bottom-3 left-1/2 rounded-full"
               style={dropletStyle}
             />
