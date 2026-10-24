@@ -4,6 +4,9 @@ import type {
   CreateReviewRequest,
   CreateReviewResponse,
   ErrorResponse,
+  ImportPostResponse,
+  PlaceLocation,
+  PlaceSearchResponse,
   InitResponse,
   ProfileResponse,
   SaveThemeRequest,
@@ -12,6 +15,12 @@ import type {
 } from '../../shared/api';
 import { isPaletteId } from '../../shared/theme';
 import { isValidRating } from '../../shared/food';
+import {
+  fetchTile,
+  importPost,
+  parsePostId,
+  searchPlaces,
+} from '../core/external';
 import { createReviewPost, postUrl } from '../core/post';
 import { getUserTheme, saveUserTheme } from '../core/preferences';
 import {
@@ -22,10 +31,20 @@ import {
   saveReview,
 } from '../core/reviews';
 
-const MAX_TEXT = { food: 60, place: 80, review: 500 };
+const MAX_TEXT = { title: 120, food: 60, place: 80, review: 2000 };
 
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Unknown error';
+
+const validLocation = (
+  value: Partial<PlaceLocation> | undefined
+): PlaceLocation | undefined => {
+  if (!value) return undefined;
+  const { address, lat, lon } = value;
+  if (typeof lat !== 'number' || typeof lon !== 'number') return undefined;
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return undefined;
+  return { address: String(address ?? '').slice(0, 200), lat, lon };
+};
 
 export const api = new Hono();
 
@@ -138,6 +157,62 @@ api.post('/theme', async (c) => {
   }
 });
 
+api.get('/import', async (c) => {
+  const username = await reddit.getCurrentUsername();
+  if (!username) {
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'You must be logged in' },
+      401
+    );
+  }
+  try {
+    const postId = await parsePostId(c.req.query('url') ?? '');
+    if (!postId) {
+      return c.json<ErrorResponse>(
+        {
+          status: 'error',
+          message: "That doesn't look like a Reddit post link",
+        },
+        400
+      );
+    }
+    return c.json<ImportPostResponse>(await importPost(postId, username));
+  } catch (error) {
+    console.error('API import error:', error);
+    return c.json<ErrorResponse>(
+      { status: 'error', message: errorMessage(error) },
+      400
+    );
+  }
+});
+
+api.get('/places', async (c) => {
+  const query = c.req.query('q')?.trim() ?? '';
+  if (query.length < 2) {
+    return c.json<PlaceSearchResponse>({ places: [] });
+  }
+  try {
+    return c.json<PlaceSearchResponse>(await searchPlaces(query.slice(0, 100)));
+  } catch (error) {
+    console.error('API place search error:', error);
+    return c.json<ErrorResponse>(
+      { status: 'error', message: errorMessage(error) },
+      502
+    );
+  }
+});
+
+api.get('/tiles/:style/:z/:x/:y', async (c) => {
+  const { style, z, x, y } = c.req.param();
+  try {
+    const tile = await fetchTile(style, z, x, y);
+    return tile ?? c.body(null, 404);
+  } catch (error) {
+    console.error('API tile error:', error);
+    return c.body(null, 502);
+  }
+});
+
 api.get('/tier', async (c) => {
   const food = c.req.query('food')?.trim();
   if (!food) {
@@ -170,15 +245,21 @@ api.post('/reviews', async (c) => {
   const food = body.food?.trim() ?? '';
   const place = body.place?.trim() ?? '';
   const review = body.review?.trim() ?? '';
+  const title = body.title?.trim() || `${food} at ${place}`;
   const rating = Number(body.rating);
+  const location = validLocation(body.location);
 
   if (!food || !place || !isValidRating(rating)) {
     return c.json<ErrorResponse>(
-      { status: 'error', message: 'Food, place and a 1–5 rating are required' },
+      {
+        status: 'error',
+        message: 'Food, place and a 1–10 rating are required',
+      },
       400
     );
   }
   if (
+    title.length > MAX_TEXT.title ||
     food.length > MAX_TEXT.food ||
     place.length > MAX_TEXT.place ||
     review.length > MAX_TEXT.review
@@ -190,7 +271,41 @@ api.post('/reviews', async (c) => {
   }
 
   try {
-    const saved = await saveReview({ username, food, place, rating, review });
+    // Imported reviews keep the original post (and its photos and date).
+    if (body.importedPostId) {
+      const source = await importPost(
+        body.importedPostId.replace(/^t3_/, ''),
+        username
+      );
+      const saved = await saveReview({
+        username,
+        title,
+        food,
+        place,
+        ...(location ? { location } : {}),
+        rating,
+        review,
+        images: source.images,
+        postedAt: source.postedAt,
+        postId: source.postId,
+      });
+      return c.json<CreateReviewResponse>({
+        review: saved,
+        postUrl: postUrl(source.postId.replace(/^t3_/, '')),
+      });
+    }
+
+    const saved = await saveReview({
+      username,
+      title,
+      food,
+      place,
+      ...(location ? { location } : {}),
+      rating,
+      review,
+      images: [],
+      postedAt: Date.now(),
+    });
 
     // The review is saved even if sharing it as a post fails.
     let url: string | null = null;

@@ -22,6 +22,6 @@ export const getHubPostId = async (): Promise<string | undefined> =>
 /** Shares a single review as its own post in the subreddit. */
 export const createReviewPost = async (review: FoodReview) =>
   reddit.submitCustomPost({
-    title: `u/${review.username} rated ${review.food} at ${review.place}: ${review.rating}/5`,
+    title: `u/${review.username} rated ${review.food} at ${review.place}: ${review.rating}/10`,
     postData: { reviewId: review.id },
   });

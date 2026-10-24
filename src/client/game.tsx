@@ -12,17 +12,26 @@ import { createRoot } from 'react-dom/client';
 import type { InitResponse } from '../shared/api';
 import { Explore } from './components/Explore';
 import { FoodBackground } from './components/FoodBackground';
-import { CogIcon, ListIcon, SearchIcon } from './components/icons';
+import { AddReview } from './components/AddReview';
+import {
+  AddIcon,
+  CogIcon,
+  ListIcon,
+  MapIcon,
+  SearchIcon,
+} from './components/icons';
+import { MapView } from './components/MapView';
 import { MyFood } from './components/MyFood';
-import { ReviewForm } from './components/ReviewForm';
 import { Settings } from './components/Settings';
 import { fetchInit } from './lib/api';
 import { initTheme, syncTheme } from './lib/theme';
 
-type Tab = 'food' | 'explore' | 'settings';
+type Tab = 'food' | 'add' | 'map' | 'explore' | 'settings';
 
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'food', label: 'My Food', icon: <ListIcon className="h-6 w-6" /> },
+  { id: 'add', label: 'Add', icon: <AddIcon className="h-6 w-6" /> },
+  { id: 'map', label: 'Map', icon: <MapIcon className="h-6 w-6" /> },
   { id: 'explore', label: 'Explore', icon: <SearchIcon className="h-6 w-6" /> },
   { id: 'settings', label: 'Settings', icon: <CogIcon className="h-6 w-6" /> },
 ];
@@ -56,7 +65,6 @@ const BottomNav = ({
 
 export const App = () => {
   const [tab, setTab] = useState<Tab>('food');
-  const [adding, setAdding] = useState(false);
   const [data, setData] = useState<InitResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const themeSynced = useRef(false);
@@ -78,22 +86,15 @@ export const App = () => {
 
   useEffect(load, [load]);
 
-  if (adding) {
-    return (
-      <ReviewForm
-        onClose={(posted) => {
-          setAdding(false);
-          if (posted) load();
-        }}
-      />
-    );
-  }
-
   return (
     <div className="flex h-full flex-col">
       <div className="min-h-0 flex-1">
         {tab === 'food' ? (
-          <MyFood data={data} error={error} onAdd={() => setAdding(true)} />
+          <MyFood data={data} error={error} />
+        ) : tab === 'add' ? (
+          <AddReview onPosted={load} />
+        ) : tab === 'map' ? (
+          <MapView data={data} />
         ) : tab === 'explore' ? (
           <Explore />
         ) : (

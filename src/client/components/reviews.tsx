@@ -3,6 +3,7 @@ import type { FoodReview, TierEntry } from '../../shared/api';
 import { tierFor } from '../../shared/food';
 import { fetchTier } from '../lib/api';
 import { TIER_COLORS } from '../lib/tiers';
+import { ReviewDetail } from './ReviewDetail';
 import { Stars } from './Stars';
 import { EmptyState } from './ui';
 
@@ -15,26 +16,49 @@ export const FoodList = ({
   reviews: FoodReview[];
   emptyMessage?: string;
 }) => {
+  const [open, setOpen] = useState<FoodReview | null>(null);
+
   if (reviews.length === 0) {
     return <EmptyState>{emptyMessage}</EmptyState>;
   }
   return (
-    <ul className="flex flex-col gap-2">
-      {reviews.map((r) => (
-        <li key={r.id} className={`${CARD} p-3`}>
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate font-semibold text-ink">{r.place}</p>
-              <p className="text-xs text-muted">{r.food}</p>
-            </div>
-            <Stars rating={r.rating} />
-          </div>
-          {r.review && (
-            <p className="mt-2 line-clamp-3 text-sm text-ink/80">{r.review}</p>
-          )}
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="flex flex-col gap-2">
+        {reviews.map((r) => (
+          <li key={r.id}>
+            <button
+              onClick={() => setOpen(r)}
+              className={`flex w-full gap-3 ${CARD} p-3 text-left cursor-pointer hover:bg-soft transition-colors`}
+            >
+              {r.images[0] && (
+                <img
+                  src={r.images[0]}
+                  alt=""
+                  className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-ink">{r.place}</p>
+                    <p className="truncate text-xs text-muted">
+                      {r.title || r.food}
+                    </p>
+                  </div>
+                  <Stars rating={r.rating} />
+                </div>
+                {r.review && (
+                  <p className="mt-1.5 line-clamp-2 text-sm text-ink/80">
+                    {r.review}
+                  </p>
+                )}
+              </div>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {open && <ReviewDetail review={open} onClose={() => setOpen(null)} />}
+    </>
   );
 };
 
@@ -107,7 +131,7 @@ export const FoodTier = ({ foods }: { foods: string[] }) => {
                   {e.place}
                 </span>
                 <span className="text-xs text-muted">
-                  {e.average.toFixed(1)}★ · {e.count}
+                  {e.average.toFixed(1)}/10 · {e.count}
                 </span>
               </li>
             );

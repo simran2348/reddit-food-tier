@@ -17,6 +17,15 @@
     "dir": "dist/server",
     "entry": "index.cjs"
   },
+  "permissions": {
+    "http": {
+      "enable": true,
+      "domains": [
+        "photon.komoot.io",
+        "basemaps.cartocdn.com"
+      ]
+    }
+  },
   "menu": {
     "items": [
       {

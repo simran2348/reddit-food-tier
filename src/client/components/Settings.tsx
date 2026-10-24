@@ -9,11 +9,11 @@ import { ScreenHeader } from './ui';
 const FEEDBACK_SUBJECT = 'Food Tier - User Feedback';
 
 const TIERS: { tier: string; range: string }[] = [
-  { tier: 'S', range: '4.5★ and up' },
-  { tier: 'A', range: '4.0 – 4.4★' },
-  { tier: 'B', range: '3.0 – 3.9★' },
-  { tier: 'C', range: '2.0 – 2.9★' },
-  { tier: 'D', range: 'below 2.0★' },
+  { tier: 'S', range: '9 and up' },
+  { tier: 'A', range: '8 – 8.9' },
+  { tier: 'B', range: '6 – 7.9' },
+  { tier: 'C', range: '4 – 5.9' },
+  { tier: 'D', range: 'below 4' },
 ];
 
 const modmailUrl = (subredditName: string) =>
@@ -111,7 +111,7 @@ export const Settings = ({ subredditName }: { subredditName: string }) => {
             </ul>
             <div>
               <p className="mb-1.5 text-xs font-bold text-muted">
-                How tiers work (average rating)
+                How tiers work (average rating out of 10)
               </p>
               <div className="grid grid-cols-2 gap-1.5">
                 {TIERS.map(({ tier, range }) => (

@@ -1,5 +1,5 @@
 export const MIN_RATING = 1;
-export const MAX_RATING = 5;
+export const MAX_RATING = 10;
 export const TOP_LIMIT = 10;
 
 export type Tier = 'S' | 'A' | 'B' | 'C' | 'D';
@@ -8,13 +8,17 @@ export type Tier = 'S' | 'A' | 'B' | 'C' | 'D';
 export const normalizeName = (value: string): string =>
   value.trim().replace(/\s+/g, ' ').toLowerCase();
 
+/** Tier for an average rating out of 10. */
 export const tierFor = (average: number): Tier => {
-  if (average >= 4.5) return 'S';
-  if (average >= 4) return 'A';
-  if (average >= 3) return 'B';
-  if (average >= 2) return 'C';
+  if (average >= 9) return 'S';
+  if (average >= 8) return 'A';
+  if (average >= 6) return 'B';
+  if (average >= 4) return 'C';
   return 'D';
 };
+
+/** Rating out of 10 shown as 0–5 stars (half stars allowed). */
+export const ratingToStars = (rating: number): number => Math.round(rating) / 2;
 
 export const isValidRating = (rating: number): boolean =>
   Number.isInteger(rating) && rating >= MIN_RATING && rating <= MAX_RATING;

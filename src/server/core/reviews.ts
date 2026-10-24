@@ -1,5 +1,5 @@
 import { redis } from '@devvit/web/server';
-import type { FoodReview, TierEntry } from '../../shared/api';
+import type { FoodReview, PlaceLocation, TierEntry } from '../../shared/api';
 import { TOP_LIMIT, normalizeName } from '../../shared/food';
 
 const keys = {
@@ -7,21 +7,57 @@ const keys = {
   userList: (username: string) => `user:${username}:reviews`,
   foods: () => 'foods',
   foodNames: () => 'foods:names',
-  tier: (food: string) => `tier:${food}`,
-  tierStats: (food: string) => `tier:${food}:stats`,
-  placeNames: (food: string) => `tier:${food}:names`,
+  // `tier10:` holds averages out of 10; the old `tier:` keys (out of 5)
+  // are no longer read.
+  tier: (food: string) => `tier10:${food}`,
+  tierStats: (food: string) => `tier10:${food}:stats`,
+  placeNames: (food: string) => `tier10:${food}:names`,
 };
+
+const parseJson = (value: string | undefined): unknown => {
+  if (!value) return undefined;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+};
+
+const parseLocation = (value: unknown): PlaceLocation | undefined => {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const { address, lat, lon } = { address: '', lat: NaN, lon: NaN, ...value };
+  return typeof address === 'string' &&
+    typeof lat === 'number' &&
+    typeof lon === 'number' &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lon)
+    ? { address, lat, lon }
+    : undefined;
+};
+
+const parseImages = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((url): url is string => typeof url === 'string')
+    : [];
 
 const parseReview = (data: Record<string, string>): FoodReview | null => {
   if (!data.id || !data.username) return null;
+  const rating = Number(data.rating ?? 0);
+  const createdAt = Number(data.createdAt ?? 0);
+  const location = parseLocation(parseJson(data.location));
   return {
     id: data.id,
     username: data.username,
+    title: data.title ?? '',
     food: data.food ?? '',
     place: data.place ?? '',
-    rating: Number(data.rating ?? 0),
+    ...(location ? { location } : {}),
+    // Reviews saved before the 10-point scale were rated out of 5.
+    rating: data.scale === '10' ? rating : rating * 2,
     review: data.review ?? '',
-    createdAt: Number(data.createdAt ?? 0),
+    images: parseImages(parseJson(data.images)),
+    createdAt,
+    postedAt: Number(data.postedAt ?? createdAt),
     ...(data.postId ? { postId: data.postId } : {}),
   };
 };
@@ -41,11 +77,17 @@ export const saveReview = async (
   await redis.hSet(keys.review(review.id), {
     id: review.id,
     username: review.username,
+    title: review.title,
     food: review.food,
     place: review.place,
+    ...(review.location ? { location: JSON.stringify(review.location) } : {}),
     rating: String(review.rating),
+    scale: '10',
     review: review.review,
+    images: JSON.stringify(review.images),
     createdAt: String(createdAt),
+    postedAt: String(review.postedAt),
+    ...(review.postId ? { postId: review.postId } : {}),
   });
   await redis.zAdd(keys.userList(review.username), {
     member: review.id,

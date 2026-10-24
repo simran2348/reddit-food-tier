@@ -2,7 +2,9 @@ import type {
   CreateReviewRequest,
   CreateReviewResponse,
   ErrorResponse,
+  ImportPostResponse,
   InitResponse,
+  PlaceSearchResponse,
   ProfileResponse,
   SaveThemeRequest,
   TierResponse,
@@ -39,6 +41,12 @@ export const saveTheme = (body: SaveThemeRequest) =>
     method: 'POST',
     body: JSON.stringify(body),
   });
+
+export const importPost = (url: string) =>
+  request<ImportPostResponse>(`/api/import?url=${encodeURIComponent(url)}`);
+
+export const searchPlaces = (query: string) =>
+  request<PlaceSearchResponse>(`/api/places?q=${encodeURIComponent(query)}`);
 
 export const createReview = (body: CreateReviewRequest) =>
   request<CreateReviewResponse>('/api/reviews', {

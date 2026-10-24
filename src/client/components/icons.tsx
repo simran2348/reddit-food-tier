@@ -48,3 +48,19 @@ export const PlusIcon = ({ className = '' }: { className?: string }) => (
     <path d="M12 5v14M5 12h14" />
   </svg>
 );
+
+/** Plus in a circle, for the "Add" tab. */
+export const AddIcon = ({ className = '' }: { className?: string }) => (
+  <svg {...strokeProps} aria-hidden className={className}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 8v8M8 12h8" />
+  </svg>
+);
+
+/** Folded map, for the "Map" tab. */
+export const MapIcon = ({ className = '' }: { className?: string }) => (
+  <svg {...strokeProps} aria-hidden className={className}>
+    <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
+    <path d="M9 4v14M15 6v14" />
+  </svg>
+);

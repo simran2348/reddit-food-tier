@@ -1,13 +1,31 @@
 import type { PaletteId } from './theme';
 
+/** A spot picked from place search; drives the map. */
+export type PlaceLocation = {
+  /** Full address line, e.g. "12 High St, London, United Kingdom". */
+  address: string;
+  lat: number;
+  lon: number;
+};
+
 export type FoodReview = {
   id: string;
   username: string;
+  /** Short headline; for imported posts, the post's title. */
+  title: string;
   food: string;
+  /** Café / restaurant name. */
   place: string;
+  location?: PlaceLocation;
+  /** Out of {@link MAX_RATING} (10). */
   rating: number;
   review: string;
+  /** Photo URLs (Reddit-hosted), from an imported post. */
+  images: string[];
+  /** When the review was saved in Food Tier. */
   createdAt: number;
+  /** When the meal was posted; for imports, the original post's date. */
+  postedAt: number;
   postId?: string;
 };
 
@@ -54,10 +72,27 @@ export type TierResponse = {
 };
 
 export type CreateReviewRequest = {
+  title: string;
   food: string;
   place: string;
+  location?: PlaceLocation;
   rating: number;
   review: string;
+  /** Set when the review comes from one of the user's existing posts. */
+  importedPostId?: string;
+};
+
+/** An existing Reddit post, pre-filled into the add form. */
+export type ImportPostResponse = {
+  postId: string;
+  title: string;
+  body: string;
+  images: string[];
+  postedAt: number;
+};
+
+export type PlaceSearchResponse = {
+  places: (PlaceLocation & { name: string })[];
 };
 
 export type CreateReviewResponse = {
